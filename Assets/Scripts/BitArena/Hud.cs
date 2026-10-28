@@ -37,7 +37,7 @@ namespace BitArena
                     break;
                 case MatchPhase.Won:
                     DrawPlay(session);
-                    DrawCard(420, 320, 1080, 280, "Pair closed", "Charlie steps back. Eight bits fell in turn.\nEnter — play again");
+                    DrawCard(420, 320, 1080, 280, "Pair closed", "Charlie is down. His five lives are gone.\nEnter — play again");
                     break;
                 case MatchPhase.Lost:
                     DrawPlay(session);
@@ -94,10 +94,12 @@ namespace BitArena
                 "<color=#ff5a4a>Alice</color> — red A, bow.   A D move, W jumps, J shoots.\n" +
                 "<color=#6aa4ff>Bob</color> — blue B, sword.   Arrow keys move and jump, K swings.\n\n" +
                 "Only one of you attacks. The other cannot strike, but a monster hit hurts either of you.\n" +
-                "Take down the marked bit. If Alice defeats a 1, Bob must defeat a 0 — and the other way around.\n" +
-                "The wrong bit stays up. After a correct hit, you swap who attacks.\n\n" +
+                "At most five monsters are out, always including at least one 0 and one 1.\n" +
+                "Strike the marked bit. If Alice defeats a 1, Bob must defeat a 0 — and the other way around.\n" +
+                "That order costs Charlie a life. A wrong bit falls too, and Charlie heals.\n" +
+                "Empty his five lives to win. After a correct hit, you swap who attacks.\n\n" +
                 "Charlie stands in the back and releases monsters shaped like 0 and 1.\n" +
-                "The mark above a monster shows the bit you may defeat.\n\n" +
+                "The mark above a monster shows the bit that continues the order.\n\n" +
                 "Enter — start      Esc — pause      R — restart";
             Label(new Rect(360, 240, 1200, 620), text, body, new Color(0.94f, 0.93f, 0.9f));
             if (!string.IsNullOrEmpty(session.CharlieLine))
@@ -114,7 +116,7 @@ namespace BitArena
             Label(new Rect(280, 48, 1360, 44), session.Objective, banner, Color.white);
             Label(new Rect(220, 96, 1480, 32), session.Subtitle, small, new Color(0.95f, 0.93f, 0.86f));
             Label(new Rect(220, 128, 1480, 32), session.CharlieLine, small, new Color(1f, 0.82f, 0.4f));
-            DrawPips(session);
+            DrawCharlieLives(session);
 
             if (session.Phase == MatchPhase.Play && Time.unscaledTime < session.CalloutUntil)
             {
@@ -126,7 +128,7 @@ namespace BitArena
             DrawFloaters(session);
             Panel(new Rect(0, 1010, W, 70), new Color(0.03f, 0.02f, 0.06f, 0.7f));
             Label(new Rect(40, 1020, 1840, 46),
-                "Alice: A D, W, J          Bob: arrow keys, K          monsters hurt both of you          R restart, Esc pause",
+                "Alice: A D, W, J          Bob: arrow keys, K          right order hurts Charlie, a wrong bit heals him          R restart, Esc pause",
                 small, new Color(0.9f, 0.9f, 0.86f));
         }
 
@@ -143,14 +145,18 @@ namespace BitArena
             }
         }
 
-        void DrawPips(GameSession session)
+        void DrawCharlieLives(GameSession session)
         {
-            float start = W * 0.5f - Tune.KillsToWin * 18f;
-            for (int i = 0; i < Tune.KillsToWin; i++)
+            if (PixelArt.Heart == null)
+                return;
+            Label(new Rect(790, 8, 130, 34), "Charlie", small, new Color(1f, 0.84f, 0.4f));
+            var color = new Color(1f, 0.78f, 0.28f);
+            float x = 920f;
+            for (int i = 0; i < Tune.CharlieLives; i++)
             {
                 var old = GUI.color;
-                GUI.color = i < session.Kills ? new Color(1f, 0.82f, 0.35f) : new Color(1f, 1f, 1f, 0.18f);
-                GUI.DrawTexture(new Rect(start + i * 36f, 8, 22, 8), pixel);
+                GUI.color = i < session.CharlieHp ? color : new Color(1f, 1f, 1f, 0.16f);
+                GUI.DrawTexture(new Rect(x + i * 34f, 10, 28, 26), PixelArt.Heart);
                 GUI.color = old;
             }
         }

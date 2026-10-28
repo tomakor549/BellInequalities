@@ -75,15 +75,12 @@ namespace BitArena
                 return;
             if (attacker != session.Attacker || session.SwapLocked)
                 return;
-            if (Type != session.Required)
-            {
-                flashUntil = Time.time + 0.16f;
-                session.WrongBit(this);
-                return;
-            }
 
             Alive = false;
-            session.CorrectKill(this);
+            if (Type == session.Required)
+                session.CorrectKill(this);
+            else
+                session.WrongKill(this);
             Destroy(gameObject);
         }
 
