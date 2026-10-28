@@ -8,6 +8,8 @@ namespace BitArena
         public SpriteRenderer Gate;
         Vector3 home;
         float castUntil;
+        float flashUntil;
+        Color flashColor = Color.white;
 
         public static CharlieBoss Create(Vector3 position)
         {
@@ -29,6 +31,12 @@ namespace BitArena
             castUntil = Time.time + 0.42f;
         }
 
+        public void Flash(Color color)
+        {
+            flashUntil = Time.time + 0.28f;
+            flashColor = color;
+        }
+
         void Update()
         {
             float bob = Mathf.Sin(Time.time * 2.05f) * 0.05f;
@@ -37,7 +45,12 @@ namespace BitArena
             transform.position = home + new Vector3(0f, bob, 0f);
             transform.localScale = Vector3.one * (1f + Mathf.Abs(punch));
             if (Sprite != null)
-                Sprite.color = casting ? new Color(1f, 0.82f, 0.45f) : Color.white;
+            {
+                if (Time.time < flashUntil)
+                    Sprite.color = flashColor;
+                else
+                    Sprite.color = casting ? new Color(1f, 0.82f, 0.45f) : Color.white;
+            }
             if (Gate != null)
             {
                 float pulse = 0.75f + Mathf.Sin(Time.time * 6f) * 0.25f;

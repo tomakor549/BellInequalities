@@ -23,7 +23,8 @@ namespace BitArena
     {
         public const float Gravity = 3.1f;
         public const int Hearts = 4;
-        public const int KillsToWin = 8;
+        public const int CharlieLives = 5;
+        public const int MaxMonsters = 5;
     }
 
     public struct Floater
@@ -46,7 +47,7 @@ namespace BitArena
         public Hero Runner;
         public CharlieBoss Charlie;
         public ArenaCamera Rig;
-        public int Kills;
+        public int CharlieHp = Tune.CharlieLives;
         public string Objective = "";
         public string Subtitle = "";
         public string CharlieLine = "";
@@ -71,7 +72,7 @@ namespace BitArena
         {
             Phase = MatchPhase.Title;
             Time.timeScale = 1f;
-            Kills = 0;
+            CharlieHp = Tune.CharlieLives;
             CharlieLine = "I am Charlie. Zeros and ones are on the way.";
             if (Alice != null) Alice.Hp = Tune.Hearts;
             if (Bob != null) Bob.Hp = Tune.Hearts;
@@ -108,7 +109,7 @@ namespace BitArena
         {
             Phase = MatchPhase.Play;
             Time.timeScale = 1f;
-            Kills = 0;
+            CharlieHp = Tune.CharlieLives;
             Required = Random.value < 0.5f ? BitType.Zero : BitType.One;
             Attacker = Alice;
             Runner = Bob;
@@ -116,11 +117,13 @@ namespace BitArena
             Bob.Hp = Tune.Hearts;
             Alice.GrantInvulnerability(1.3f);
             Bob.GrantInvulnerability(1.3f);
-            spawnIn = 0.65f;
             LostHero = null;
             LostCause = "";
             Announce(true);
             TintGate();
+            SpawnMonster(BitType.Zero, -0.4f);
+            SpawnMonster(BitType.One, 0.4f);
+            spawnIn = 1.15f;
         }
 
         public void Restart()
@@ -136,8 +139,29 @@ namespace BitArena
             if (Phase != MatchPhase.Play)
                 return;
 
-            int alive = 0;
-            bool hasRequired = false;
+            CountAlive(out int zeros, out int ones);
+            int alive = zeros + ones;
+            if (alive < Tune.MaxMonsters && (zeros == 0 || ones == 0))
+                spawnIn = 0f;
+
+            spawnIn -= Time.deltaTime;
+            if (spawnIn > 0f || alive >= Tune.MaxMonsters)
+                return;
+
+            BitType type = zeros == 0 ? BitType.Zero
+                : ones == 0 ? BitType.One
+                : zeros < ones ? BitType.Zero
+                : ones < zeros ? BitType.One
+                : Required;
+            bool neitherPresent = zeros == 0 && ones == 0;
+            SpawnMonster(type, Random.Range(-0.55f, 0.55f));
+            spawnIn = neitherPresent ? 0.05f : 1.15f;
+        }
+
+        void CountAlive(out int zeros, out int ones)
+        {
+            zeros = 0;
+            ones = 0;
             for (int i = Monsters.Count - 1; i >= 0; i--)
             {
                 var monster = Monsters[i];
@@ -146,25 +170,21 @@ namespace BitArena
                     Monsters.RemoveAt(i);
                     continue;
                 }
-                alive++;
-                if (monster.Type == Required)
-                    hasRequired = true;
+                if (monster.Type == BitType.Zero)
+                    zeros++;
+                else
+                    ones++;
             }
+        }
 
-            spawnIn -= Time.deltaTime;
-            int cap = Mathf.Min(6, 4 + Kills / 2);
-            if (spawnIn > 0f || alive >= cap)
-                return;
-
-            BitType type = !hasRequired || Random.value < 0.58f ? Required : Opposite(Required);
-            var spawned = BitMonster.Spawn(type, new Vector3(Random.Range(-0.45f, 0.45f), 8.35f, 0f));
+        void SpawnMonster(BitType type, float x)
+        {
+            var spawned = BitMonster.Spawn(type, new Vector3(x, 8.35f, 0f));
             spawned.Body.linearVelocity = new Vector2(Random.Range(-3.5f, 3.5f), 0.3f);
             Remember(spawned);
             if (Charlie != null)
                 Charlie.Cast();
             TintGate();
-            float rush = Mathf.Clamp(Kills * 0.15f, 0f, 1.3f);
-            spawnIn = Mathf.Max(1.02f, 2.35f - rush);
         }
 
         public void Remember(BitMonster monster)
@@ -186,15 +206,20 @@ namespace BitArena
                 return;
 
             swapUnlockAt = Time.time + 0.4f;
-            Kills++;
             SfxSynth.Kill();
             if (Rig != null)
                 Rig.Shake = 0.2f;
             var burst = monster.Type == BitType.Zero ? new Color(1f, 0.82f, 0.25f) : new Color(0.78f, 0.68f, 1f);
             Vfx.Burst(monster.transform.position, burst, 12, 5.5f);
             Float(monster.transform.position + Vector3.up * 0.4f, "YES!", Color.white);
+            CharlieHp = Mathf.Max(0, CharlieHp - 1);
+            if (Charlie != null)
+            {
+                Float(Charlie.transform.position + Vector3.up * 1.5f, "-1", new Color(1f, 0.4f, 0.34f));
+                Charlie.Flash(new Color(1f, 0.35f, 0.3f));
+            }
 
-            if (Kills >= Tune.KillsToWin)
+            if (CharlieHp <= 0)
             {
                 Win();
                 return;
@@ -212,11 +237,27 @@ namespace BitArena
             TintGate();
         }
 
-        public void WrongBit(BitMonster monster)
+        public void WrongKill(BitMonster monster)
         {
+            if (Phase != MatchPhase.Play)
+                return;
+
             SfxSynth.Wrong();
+            Vfx.Burst(monster.transform.position, new Color(1f, 0.45f, 0.38f), 8, 4f);
             Float(monster.transform.position + Vector3.up * 0.85f, "wrong bit", new Color(1f, 0.45f, 0.38f));
-            CharlieLine = "Wrong bit!";
+            if (CharlieHp >= Tune.CharlieLives)
+            {
+                CharlieLine = "Wrong bit. I am already full.";
+                return;
+            }
+
+            CharlieHp++;
+            CharlieLine = "Wrong bit. I recover a life.";
+            if (Charlie != null)
+            {
+                Float(Charlie.transform.position + Vector3.up * 1.5f, "+1", new Color(0.55f, 1f, 0.55f));
+                Charlie.Flash(new Color(0.6f, 1f, 0.68f));
+            }
         }
 
         public void OnHeroHurt(Hero hero, string cause)
