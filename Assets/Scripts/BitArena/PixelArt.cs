@@ -17,6 +17,7 @@ namespace BitArena
         public static Sprite Chevron;
         public static Sprite SparkDot;
         public static Sprite Ring;
+        public static Sprite Shadow;
         public static Sprite Backdrop;
         public static Sprite Gate;
         public static Texture2D Heart;
@@ -101,6 +102,7 @@ namespace BitArena
             Chevron = BuildChevron();
             SparkDot = BuildSpark();
             Ring = BuildRing();
+            Shadow = BuildShadow();
             Backdrop = BuildBackdrop();
             Gate = BuildGate();
             Heart = BuildHeartTex();
@@ -313,6 +315,29 @@ namespace BitArena
             return canvas.ToSprite(16f, new Vector2(0.5f, 0.5f));
         }
 
+        static Sprite BuildShadow()
+        {
+            const int w = 32;
+            const int h = 12;
+            var canvas = new Canvas(w, h);
+            float cx = (w - 1) * 0.5f;
+            float cy = (h - 1) * 0.5f;
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float nx = (x - cx) / cx;
+                    float ny = (y - cy) / cy;
+                    float d = nx * nx + ny * ny;
+                    if (d > 1f)
+                        continue;
+                    byte alpha = (byte)Mathf.Clamp(Mathf.RoundToInt((1f - d) * 150f), 0, 150);
+                    canvas.Set(x, y, new Color32(0, 0, 0, alpha));
+                }
+            }
+            return canvas.ToSprite(32f, new Vector2(0.5f, 0.5f));
+        }
+
         static Sprite BuildGate()
         {
             var canvas = new Canvas(28, 28);
@@ -374,6 +399,10 @@ namespace BitArena
             canvas.Fill(392, 70, 18, 110, new Color32(58, 42, 72, 255));
             canvas.Fill(150, 90, 16, 90, new Color32(48, 30, 58, 255));
             canvas.Fill(314, 90, 16, 90, new Color32(36, 32, 64, 255));
+            canvas.Fill(74, 148, 8, 14, new Color32(255, 196, 120, 255));
+            canvas.Fill(398, 148, 8, 14, new Color32(150, 196, 255, 255));
+            canvas.Fill(154, 150, 8, 12, new Color32(255, 214, 140, 255));
+            canvas.Fill(318, 150, 8, 12, new Color32(170, 150, 255, 255));
 
             for (int x = 168; x < 312; x++)
             {

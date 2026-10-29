@@ -32,6 +32,8 @@ namespace BitArena
         float invulnUntil;
         float rejectUntil;
         float slashUntil;
+        float nextDust;
+        SpriteRenderer shadow;
 
         const float MoveSpeed = 7.7f;
         const float JumpVelocity = 14.2f;
@@ -75,6 +77,12 @@ namespace BitArena
             ringGo.transform.SetParent(transform, false);
             ringGo.transform.localPosition = new Vector3(0f, -0.58f, 0f);
             ring = PixelArt.AddSprite(ringGo, PixelArt.Ring, 5);
+
+            var shade = new GameObject("Shadow");
+            shade.transform.SetParent(transform, false);
+            shade.transform.localPosition = new Vector3(0f, -0.62f, 0f);
+            shadow = PixelArt.AddSprite(shade, PixelArt.Shadow, 4);
+            shadow.color = new Color(0f, 0f, 0f, 0.45f);
 
             var slashGo = new GameObject("Slash");
             slashGo.transform.SetParent(visual, false);
@@ -294,6 +302,18 @@ namespace BitArena
 
             visual.localScale = new Vector3(facing * sx, sy, 1f);
             visual.localPosition = new Vector3(0f, bob, 0f);
+            if (shadow != null)
+            {
+                float lift = grounded ? 1f : 0.62f;
+                shadow.transform.localScale = new Vector3(lift, lift * 0.85f, 1f);
+                shadow.color = new Color(0f, 0f, 0f, grounded ? 0.42f : 0.2f);
+            }
+            if (grounded && Mathf.Abs(move) > 0.2f && Time.time >= nextDust)
+            {
+                nextDust = Time.time + 0.16f;
+                var tint = Kind == HeroKind.Alice ? new Color(1f, 0.55f, 0.35f) : new Color(0.55f, 0.75f, 1f);
+                Vfx.Burst(transform.position + Vector3.down * 0.58f, tint, 1, 1.2f);
+            }
             bool blink = Time.time < invulnUntil && ((int)(Time.unscaledTime * 16f) & 1) == 0;
             sprite.color = blink ? new Color(1f, 1f, 1f, 0.28f) : Color.white;
             if (ring != null)
