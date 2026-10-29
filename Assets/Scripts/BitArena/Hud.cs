@@ -117,13 +117,39 @@ namespace BitArena
         void DrawMainMenu(GameSession session)
         {
             Panel(new Rect(0, 0, W, H), new Color(0.04f, 0.02f, 0.07f, 1f));
-            Label(new Rect(260, 180, 1400, 90), "Alice & Bob", title, new Color(1f, 0.93f, 0.75f));
-            Label(new Rect(260, 270, 1400, 44), "Alice and Bob against Charlie", body, new Color(1f, 0.84f, 0.5f));
-            if (MenuButton(session, 0, 460f, "New Game"))
+            Label(new Rect(260, 150, 1400, 90), "Alice & Bob", title, new Color(1f, 0.93f, 0.75f));
+            Label(new Rect(260, 240, 1400, 44), "Alice and Bob against Charlie", body, new Color(1f, 0.84f, 0.5f));
+            DrawDifficulty(session);
+            if (MenuButton(session, 0, 500f, "New Game"))
                 session.ConfirmMenu();
-            if (MenuButton(session, 1, 560f, "Exit"))
+            if (MenuButton(session, 1, 600f, "Exit"))
                 session.ConfirmMenu();
-            Label(new Rect(260, 680, 1400, 40), "Up and Down, then Enter", small, new Color(0.8f, 0.78f, 0.72f));
+            Label(new Rect(260, 700, 1400, 40), "Left and Right set difficulty. Up and Down, then Enter", small, new Color(0.8f, 0.78f, 0.72f));
+        }
+
+        void DrawDifficulty(GameSession session)
+        {
+            Label(new Rect(260, 300, 1400, 32), "Difficulty", small, new Color(0.86f, 0.82f, 0.74f));
+            const float x = 700f;
+            const float y = 338f;
+            const float w = 520f;
+            const float h = 64f;
+            float seg = w / GameSession.DifficultyNames.Length;
+            Panel(new Rect(x - 4f, y - 4f, w + 8f, h + 8f), new Color(0.42f, 0.3f, 0.12f, 1f));
+            for (int i = 0; i < GameSession.DifficultyNames.Length; i++)
+            {
+                var rect = new Rect(x + i * seg, y, seg, h);
+                bool on = session.Difficulty == i;
+                var oldBg = GUI.backgroundColor;
+                GUI.backgroundColor = on ? new Color(1f, 0.84f, 0.38f) : new Color(0.46f, 0.4f, 0.54f);
+                if (GUI.Button(rect, GameSession.DifficultyNames[i], again))
+                    session.SetDifficulty(i);
+                GUI.backgroundColor = oldBg;
+                if (i > 0)
+                    Panel(new Rect(x + i * seg - 1f, y, 2f, h), new Color(0.12f, 0.08f, 0.06f, 1f));
+            }
+
+            Label(new Rect(260, 412, 1400, 34), "Charlie has " + session.CharlieMax + " lives", small, new Color(1f, 0.84f, 0.5f));
         }
 
         bool MenuButton(GameSession session, int index, float y, string text)
@@ -229,7 +255,7 @@ namespace BitArena
             Label(new Rect(790, 8, 130, 34), "Charlie", small, new Color(1f, 0.84f, 0.4f));
             var color = new Color(1f, 0.78f, 0.28f);
             float x = 920f;
-            for (int i = 0; i < Tune.CharlieLives; i++)
+            for (int i = 0; i < session.CharlieMax; i++)
             {
                 var old = GUI.color;
                 GUI.color = i < session.CharlieHp ? color : new Color(1f, 1f, 1f, 0.16f);
@@ -292,7 +318,7 @@ namespace BitArena
             Panel(new Rect(x, y, w, h), new Color(0.05f, 0.03f, 0.09f, 0.94f));
             Panel(new Rect(x, y, w, 8f), won ? new Color(1f, 0.82f, 0.35f) : new Color(1f, 0.35f, 0.32f));
             Label(new Rect(x + 40, y + 24, w - 80, 64), won ? "Pair closed" : "Defeat", title, new Color(1f, 0.9f, 0.7f));
-            string sub = won ? "Charlie is down. His five lives are gone." : LoseText(session);
+            string sub = won ? "Charlie is down. His lives are gone." : LoseText(session);
             Label(new Rect(x + 40, y + 92, w - 80, 40), sub, body, new Color(0.92f, 0.9f, 0.84f));
 
             float tableX = x + 36f;
