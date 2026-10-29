@@ -24,7 +24,7 @@ namespace BitArena
         public const float Gravity = 3.1f;
         public const int Hearts = 4;
         public const int CharlieLives = 5;
-        public const int MaxMonsters = 5;
+        public const int MaxMonsters = 3;
     }
 
     public struct Floater
@@ -40,7 +40,8 @@ namespace BitArena
         public static GameSession I { get; private set; }
 
         public MatchPhase Phase = MatchPhase.Title;
-        public BitType Required = BitType.One;
+        public BitType AliceMission = BitType.One;
+        public BitType BobMission = BitType.Zero;
         public Hero Alice;
         public Hero Bob;
         public Hero Attacker;
@@ -62,6 +63,8 @@ namespace BitArena
         float swapUnlockAt;
 
         public bool SwapLocked => Time.time < swapUnlockAt;
+
+        public BitType Required => Attacker != null && Attacker.Kind == HeroKind.Bob ? BobMission : AliceMission;
 
         void Awake()
         {
@@ -110,7 +113,8 @@ namespace BitArena
             Phase = MatchPhase.Play;
             Time.timeScale = 1f;
             CharlieHp = Tune.CharlieLives;
-            Required = Random.value < 0.5f ? BitType.Zero : BitType.One;
+            AliceMission = RollBit();
+            BobMission = RollBit();
             Attacker = Alice;
             Runner = Bob;
             Alice.Hp = Tune.Hearts;
@@ -225,10 +229,14 @@ namespace BitArena
                 return;
             }
 
+            if (Attacker != null && Attacker.Kind == HeroKind.Bob)
+                BobMission = RollBit();
+            else
+                AliceMission = RollBit();
+
             var previousAttacker = Attacker;
             Attacker = Runner;
             Runner = previousAttacker;
-            Required = Opposite(Required);
             Alice.GrantInvulnerability(0.55f);
             Bob.GrantInvulnerability(0.55f);
             Announce(false);
@@ -303,22 +311,32 @@ namespace BitArena
 
         void Announce(bool first)
         {
-            string bit = Required == BitType.Zero ? "0" : "1";
+            string aliceBit = BitDigit(AliceMission);
+            string bobBit = BitDigit(BobMission);
+            string word = Required == BitType.Zero ? "zero" : "one";
             bool aliceAttacks = Attacker != null && Attacker.Kind == HeroKind.Alice;
             string who = aliceAttacks ? "Alice" : "Bob";
-            string weapon = aliceAttacks ? "bow" : "sword";
             string other = aliceAttacks ? "Bob" : "Alice";
             string whoColor = aliceAttacks ? "#ff5a4a" : "#6aa4ff";
             string otherColor = aliceAttacks ? "#6aa4ff" : "#ff5a4a";
-            Objective = "<color=" + whoColor + ">" + who + "</color>  ·  " + weapon + "  ·  target <color=#ffe08a>" + bit + "</color>";
-            Subtitle = "<color=" + otherColor + ">" + other + "</color> cannot attack — monsters hurt both of you";
-            CharlieLine = aliceAttacks
-                ? (Required == BitType.One ? "Alice, shoot the one." : "Alice, shoot the zero.")
-                : (Required == BitType.Zero ? "Bob, cut the zero." : "Bob, cut the one.");
-            BigCallout = who + "  →  " + bit;
+            Objective = "<color=#ff5a4a>Alice</color> kill <color=#ffe08a>" + aliceBit
+                + "</color>    <color=#6aa4ff>Bob</color> kill <color=#ffe08a>" + bobBit + "</color>";
+            Subtitle = "<color=" + whoColor + ">" + who + "</color> attacks  ·  <color=" + otherColor + ">" + other + "</color> runs";
+            CharlieLine = who + ", your mission is the " + word + ". " + other + " runs.";
+            BigCallout = who + "  →  " + BitDigit(Required);
             CalloutUntil = Time.unscaledTime + (first ? 1.7f : 1.15f);
             if (!first)
                 SfxSynth.Swap();
+        }
+
+        static BitType RollBit()
+        {
+            return Random.value < 0.5f ? BitType.Zero : BitType.One;
+        }
+
+        static string BitDigit(BitType type)
+        {
+            return type == BitType.Zero ? "0" : "1";
         }
 
         void TintGate()
@@ -328,11 +346,6 @@ namespace BitArena
             Charlie.Gate.color = Required == BitType.Zero
                 ? new Color(1f, 0.84f, 0.28f)
                 : new Color(0.78f, 0.68f, 1f);
-        }
-
-        static BitType Opposite(BitType type)
-        {
-            return type == BitType.Zero ? BitType.One : BitType.Zero;
         }
     }
 }
