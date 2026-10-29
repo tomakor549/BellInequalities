@@ -251,32 +251,23 @@ namespace BitArena
         {
             Vector2 center = (Vector2)transform.position + new Vector2(facing * 0.98f, 0.12f);
             var hits = Physics2D.OverlapBoxAll(center, new Vector2(1.5f, 1.25f), 0f);
-            BitMonster required = null;
-            BitMonster other = null;
-            float requiredDist = 99f;
-            float otherDist = 99f;
+            BitMonster nearest = null;
+            float nearestDist = 99f;
             for (int i = 0; i < hits.Length; i++)
             {
                 var monster = hits[i].GetComponent<BitMonster>();
                 if (monster == null || !monster.Alive)
                     continue;
                 float dist = Vector2.Distance(center, monster.transform.position);
-                if (monster.Type == GameSession.I.Required && dist < requiredDist)
+                if (dist < nearestDist)
                 {
-                    requiredDist = dist;
-                    required = monster;
-                }
-                else if (monster.Type != GameSession.I.Required && dist < otherDist)
-                {
-                    otherDist = dist;
-                    other = monster;
+                    nearestDist = dist;
+                    nearest = monster;
                 }
             }
 
-            if (required != null)
-                required.TakeHit(this);
-            else if (other != null)
-                other.TakeHit(this);
+            if (nearest != null)
+                nearest.TakeHit(this);
         }
 
         void Animate()

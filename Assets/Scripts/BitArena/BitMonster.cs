@@ -14,7 +14,6 @@ namespace BitArena
         SpriteRenderer marker;
         float facing = 1f;
         float nextJump;
-        float flashUntil;
 
         public static BitMonster Spawn(BitType type, Vector3 position)
         {
@@ -77,10 +76,7 @@ namespace BitArena
                 return;
 
             Alive = false;
-            if (Type == session.Required)
-                session.CorrectKill(this);
-            else
-                session.WrongKill(this);
+            session.RecordKill(this);
             Destroy(gameObject);
         }
 
@@ -206,23 +202,10 @@ namespace BitArena
         {
             if (visual != null)
                 visual.localScale = new Vector3(facing, 1f, 1f);
-            var session = GameSession.I;
-            bool marked = Alive && session != null && session.Phase == MatchPhase.Play && Type == session.Required;
             if (marker != null)
-            {
-                marker.enabled = marked;
-                marker.transform.localPosition = new Vector3(0f, 1.12f + Mathf.Sin(Time.time * 8f) * 0.08f, 0f);
-                marker.color = Type == BitType.Zero
-                    ? new Color(1f, 0.86f, 0.25f)
-                    : new Color(0.86f, 0.75f, 1f);
-            }
+                marker.enabled = false;
             if (sprite != null)
-            {
-                if (Time.time < flashUntil)
-                    sprite.color = Color.white;
-                else
-                    sprite.color = marked ? Color.white : new Color(0.72f, 0.72f, 0.72f, 1f);
-            }
+                sprite.color = Color.white;
         }
 
         void OnDestroy()

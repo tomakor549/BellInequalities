@@ -40,8 +40,8 @@ namespace BitArena
         public static GameSession I { get; private set; }
 
         public MatchPhase Phase = MatchPhase.Title;
-        public BitType AliceMission = BitType.One;
-        public BitType BobMission = BitType.Zero;
+        public BitType AliceState = BitType.Zero;
+        public BitType BobState = BitType.Zero;
         public Hero Alice;
         public Hero Bob;
         public Hero Attacker;
@@ -64,7 +64,10 @@ namespace BitArena
 
         public bool SwapLocked => Time.time < swapUnlockAt;
 
-        public BitType Required => Attacker != null && Attacker.Kind == HeroKind.Bob ? BobMission : AliceMission;
+        bool aliceReady;
+        bool bobReady;
+        BitType aliceKill;
+        BitType bobKill;
 
         void Awake()
         {
@@ -113,8 +116,10 @@ namespace BitArena
             Phase = MatchPhase.Play;
             Time.timeScale = 1f;
             CharlieHp = Tune.CharlieLives;
-            AliceMission = RollBit();
-            BobMission = RollBit();
+            aliceReady = false;
+            bobReady = false;
+            AliceState = RollBit();
+            BobState = RollBit();
             Attacker = Alice;
             Runner = Bob;
             Alice.Hp = Tune.Hearts;
@@ -156,7 +161,7 @@ namespace BitArena
                 : ones == 0 ? BitType.One
                 : zeros < ones ? BitType.Zero
                 : ones < zeros ? BitType.One
-                : Required;
+                : (Random.value < 0.5f ? BitType.Zero : BitType.One);
             bool neitherPresent = zeros == 0 && ones == 0;
             SpawnMonster(type, Random.Range(-0.55f, 0.55f));
             spawnIn = neitherPresent ? 0.05f : 1.15f;
@@ -204,68 +209,110 @@ namespace BitArena
             }
         }
 
-        public void CorrectKill(BitMonster monster)
+        public void RecordKill(BitMonster monster)
         {
-            if (Phase != MatchPhase.Play || SwapLocked)
+            if (Phase != MatchPhase.Play || SwapLocked || Attacker == null)
                 return;
 
             swapUnlockAt = Time.time + 0.4f;
             SfxSynth.Kill();
             if (Rig != null)
-                Rig.Shake = 0.2f;
+                Rig.Shake = 0.16f;
             var burst = monster.Type == BitType.Zero ? new Color(1f, 0.82f, 0.25f) : new Color(0.78f, 0.68f, 1f);
             Vfx.Burst(monster.transform.position, burst, 12, 5.5f);
-            Float(monster.transform.position + Vector3.up * 0.4f, "YES!", Color.white);
-            CharlieHp = Mathf.Max(0, CharlieHp - 1);
-            if (Charlie != null)
+            Float(monster.transform.position + Vector3.up * 0.4f, BitDigit(monster.Type), Color.white);
+
+            if (Attacker.Kind == HeroKind.Alice)
             {
-                Float(Charlie.transform.position + Vector3.up * 1.5f, "-1", new Color(1f, 0.4f, 0.34f));
-                Charlie.Flash(new Color(1f, 0.35f, 0.3f));
+                aliceKill = monster.Type;
+                aliceReady = true;
+            }
+            else
+            {
+                bobKill = monster.Type;
+                bobReady = true;
             }
 
-            if (CharlieHp <= 0)
+            if (aliceReady && bobReady)
             {
-                Win();
+                ResolvePair();
                 return;
             }
 
-            if (Attacker != null && Attacker.Kind == HeroKind.Bob)
-                BobMission = RollBit();
-            else
-                AliceMission = RollBit();
-
-            var previousAttacker = Attacker;
-            Attacker = Runner;
-            Runner = previousAttacker;
-            Alice.GrantInvulnerability(0.55f);
-            Bob.GrantInvulnerability(0.55f);
+            SwapRoles();
             Announce(false);
+            if (Charlie != null)
+                Charlie.Cast();
+        }
+
+        void ResolvePair()
+        {
+            int and = And(aliceKill, bobKill);
+            int xor = Xor(AliceState, BobState);
+            bool holds = and == xor;
+            bool alreadyFull = holds && CharlieHp >= Tune.CharlieLives;
+            aliceReady = false;
+            bobReady = false;
+
+            if (!holds)
+            {
+                CharlieHp = Mathf.Max(0, CharlieHp - 1);
+                if (Rig != null)
+                    Rig.Shake = 0.28f;
+                if (Charlie != null)
+                {
+                    Float(Charlie.transform.position + Vector3.up * 1.5f, "-1", new Color(1f, 0.4f, 0.34f));
+                    Charlie.Flash(new Color(1f, 0.35f, 0.3f));
+                }
+                if (CharlieHp <= 0)
+                {
+                    Win();
+                    return;
+                }
+            }
+            else if (CharlieHp < Tune.CharlieLives)
+            {
+                CharlieHp++;
+                SfxSynth.Wrong();
+                if (Charlie != null)
+                {
+                    Float(Charlie.transform.position + Vector3.up * 1.5f, "+1", new Color(0.55f, 1f, 0.55f));
+                    Charlie.Flash(new Color(0.6f, 1f, 0.68f));
+                }
+            }
+            else
+            {
+                SfxSynth.Wrong();
+            }
+
+            string pair = BitDigit(aliceKill) + " AND " + BitDigit(bobKill);
+            string verdict = !holds
+                ? pair + " breaks a XOR b. I lose a life."
+                : alreadyFull
+                    ? pair + " matches a XOR b. I am already full."
+                    : pair + " matches a XOR b. I recover a life.";
+
+            AliceState = RollBit();
+            BobState = RollBit();
+            SwapRoles();
+            Announce(false);
+            CharlieLine = verdict;
+            BigCallout = holds ? "MATCH" : "BREAK";
+            CalloutUntil = Time.unscaledTime + 1.5f;
             if (Charlie != null)
                 Charlie.Cast();
             TintGate();
         }
 
-        public void WrongKill(BitMonster monster)
+        void SwapRoles()
         {
-            if (Phase != MatchPhase.Play)
-                return;
-
-            SfxSynth.Wrong();
-            Vfx.Burst(monster.transform.position, new Color(1f, 0.45f, 0.38f), 8, 4f);
-            Float(monster.transform.position + Vector3.up * 0.85f, "wrong bit", new Color(1f, 0.45f, 0.38f));
-            if (CharlieHp >= Tune.CharlieLives)
-            {
-                CharlieLine = "Wrong bit. I am already full.";
-                return;
-            }
-
-            CharlieHp++;
-            CharlieLine = "Wrong bit. I recover a life.";
-            if (Charlie != null)
-            {
-                Float(Charlie.transform.position + Vector3.up * 1.5f, "+1", new Color(0.55f, 1f, 0.55f));
-                Charlie.Flash(new Color(0.6f, 1f, 0.68f));
-            }
+            var previousAttacker = Attacker;
+            Attacker = Runner;
+            Runner = previousAttacker;
+            if (Alice != null)
+                Alice.GrantInvulnerability(0.55f);
+            if (Bob != null)
+                Bob.GrantInvulnerability(0.55f);
         }
 
         public void OnHeroHurt(Hero hero, string cause)
@@ -311,22 +358,41 @@ namespace BitArena
 
         void Announce(bool first)
         {
-            string aliceBit = BitDigit(AliceMission);
-            string bobBit = BitDigit(BobMission);
-            string word = Required == BitType.Zero ? "zero" : "one";
+            int xor = Xor(AliceState, BobState);
             bool aliceAttacks = Attacker != null && Attacker.Kind == HeroKind.Alice;
             string who = aliceAttacks ? "Alice" : "Bob";
             string other = aliceAttacks ? "Bob" : "Alice";
             string whoColor = aliceAttacks ? "#ff5a4a" : "#6aa4ff";
             string otherColor = aliceAttacks ? "#6aa4ff" : "#ff5a4a";
-            Objective = "<color=#ff5a4a>Alice</color> kill <color=#ffe08a>" + aliceBit
-                + "</color>    <color=#6aa4ff>Bob</color> kill <color=#ffe08a>" + bobBit + "</color>";
+            Objective = "<color=#ff5a4a>Alice</color> state <color=#ffe08a>" + BitDigit(AliceState)
+                + "</color>    <color=#6aa4ff>Bob</color> state <color=#ffe08a>" + BitDigit(BobState)
+                + "</color>    a XOR b = <color=#ffe08a>" + xor + "</color>";
             Subtitle = "<color=" + whoColor + ">" + who + "</color> attacks  ·  <color=" + otherColor + ">" + other + "</color> runs";
-            CharlieLine = who + ", your mission is the " + word + ". " + other + " runs.";
-            BigCallout = who + "  →  " + BitDigit(Required);
+            if (aliceReady && !bobReady)
+                CharlieLine = "Alice killed " + BitDigit(aliceKill) + ". Bob, choose your bit.";
+            else if (bobReady && !aliceReady)
+                CharlieLine = "Bob killed " + BitDigit(bobKill) + ". Alice, choose your bit.";
+            else
+                CharlieLine = "Kill any bit. Break a XOR b and I lose a life.";
+            if (aliceReady && !bobReady)
+                BigCallout = "Alice  →  " + BitDigit(aliceKill);
+            else if (bobReady && !aliceReady)
+                BigCallout = "Bob  →  " + BitDigit(bobKill);
+            else
+                BigCallout = BitDigit(AliceState) + " XOR " + BitDigit(BobState);
             CalloutUntil = Time.unscaledTime + (first ? 1.7f : 1.15f);
             if (!first)
                 SfxSynth.Swap();
+        }
+
+        static int And(BitType left, BitType right)
+        {
+            return (left == BitType.One && right == BitType.One) ? 1 : 0;
+        }
+
+        static int Xor(BitType left, BitType right)
+        {
+            return left != right ? 1 : 0;
         }
 
         static BitType RollBit()
@@ -343,7 +409,7 @@ namespace BitArena
         {
             if (Charlie == null || Charlie.Gate == null)
                 return;
-            Charlie.Gate.color = Required == BitType.Zero
+            Charlie.Gate.color = Xor(AliceState, BobState) == 0
                 ? new Color(1f, 0.84f, 0.28f)
                 : new Color(0.78f, 0.68f, 1f);
         }
