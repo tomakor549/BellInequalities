@@ -125,7 +125,10 @@ namespace BitArena
 
         public void MoveMenu(int delta)
         {
+            int prev = MenuCursor;
             MenuCursor = (MenuCursor + delta + 2) % 2;
+            if (prev != MenuCursor)
+                SfxSynth.MenuTick();
         }
 
         public void SetDifficulty(int index)
@@ -134,7 +137,10 @@ namespace BitArena
                 index = 0;
             else if (index >= LifeCaps.Length)
                 index = LifeCaps.Length - 1;
+            if (difficulty == index)
+                return;
             difficulty = index;
+            SfxSynth.MenuTick();
         }
 
         public void CycleDifficulty(int delta)
@@ -153,7 +159,10 @@ namespace BitArena
         public void HighlightMap(int index)
         {
             int count = ArenaMaps.All.Length;
+            int prev = pickedMap;
             pickedMap = (index % count + count) % count;
+            if (prev != pickedMap)
+                SfxSynth.MenuTick();
         }
 
         public void ExitGame()
