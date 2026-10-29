@@ -154,6 +154,7 @@ namespace BitArena
                 case 'a': return KeyCode.A;
                 case 'd': return KeyCode.D;
                 case 'w': return KeyCode.W;
+                case 's': return KeyCode.S;
                 case 'j': return KeyCode.J;
                 case 'k': return KeyCode.K;
                 case 'r': return KeyCode.R;
@@ -171,6 +172,7 @@ namespace BitArena
                 case KeyCode.A: return Key.A;
                 case KeyCode.D: return Key.D;
                 case KeyCode.W: return Key.W;
+                case KeyCode.S: return Key.S;
                 case KeyCode.J: return Key.J;
                 case KeyCode.K: return Key.K;
                 case KeyCode.R: return Key.R;
@@ -181,6 +183,7 @@ namespace BitArena
                 case KeyCode.LeftArrow: return Key.LeftArrow;
                 case KeyCode.RightArrow: return Key.RightArrow;
                 case KeyCode.UpArrow: return Key.UpArrow;
+                case KeyCode.DownArrow: return Key.DownArrow;
                 case KeyCode.LeftControl: return Key.LeftCtrl;
                 case KeyCode.RightControl: return Key.RightCtrl;
                 default: return Key.None;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BitArena
@@ -34,6 +35,8 @@ namespace BitArena
         float slashUntil;
         float nextDust;
         SpriteRenderer shadow;
+        bool dropRequested;
+        readonly List<Collider2D> droppingThrough = new List<Collider2D>();
 
         const float MoveSpeed = 7.7f;
         const float JumpVelocity = 14.2f;
@@ -122,6 +125,7 @@ namespace BitArena
                 move = 0f;
                 attackDown = false;
                 jumpBuffer = 0f;
+                dropRequested = false;
             }
             else if (attackDown)
             {
@@ -144,6 +148,7 @@ namespace BitArena
                 if (GameInput.Held(KeyCode.D)) move += 1f;
                 if (GameInput.Down(KeyCode.W)) jumpBuffer = 0.14f;
                 jumpHeld = GameInput.Held(KeyCode.W);
+                if (GameInput.Down(KeyCode.S)) dropRequested = true;
                 attackDown = GameInput.Down(KeyCode.J) || GameInput.Down(KeyCode.LeftControl);
             }
             else
@@ -152,6 +157,7 @@ namespace BitArena
                 if (GameInput.Held(KeyCode.RightArrow)) move += 1f;
                 if (GameInput.Down(KeyCode.UpArrow)) jumpBuffer = 0.14f;
                 jumpHeld = GameInput.Held(KeyCode.UpArrow);
+                if (GameInput.Down(KeyCode.DownArrow)) dropRequested = true;
                 attackDown = GameInput.Down(KeyCode.K) || GameInput.Down(KeyCode.RightControl);
             }
         }
@@ -166,8 +172,24 @@ namespace BitArena
                 return;
             }
 
+            ReleaseClearedPlatforms();
             bool grounded = CheckGround();
-            if (grounded)
+            bool dropping = false;
+            if (dropRequested)
+            {
+                dropRequested = false;
+                dropping = grounded && TryDropThrough();
+            }
+            if (dropping)
+            {
+                grounded = false;
+                coyote = 0f;
+                jumpBuffer = 0f;
+                squash = 0.08f;
+                var tint = Kind == HeroKind.Alice ? new Color(1f, 0.45f, 0.2f) : new Color(0.45f, 0.75f, 1f);
+                Vfx.Burst(transform.position + Vector3.down * 0.55f, tint, 3, 1.6f);
+            }
+            else if (grounded)
             {
                 coyote = 0.12f;
                 if (!wasGrounded)
@@ -202,6 +224,9 @@ namespace BitArena
                 cutJump = true;
             }
 
+            if (dropping)
+                vy = Mathf.Min(vy, -3.4f);
+
             Body.linearVelocity = new Vector2(vx, vy);
             if (Mathf.Abs(move) > 0.1f)
                 facing = Mathf.Sign(move);
@@ -216,13 +241,68 @@ namespace BitArena
             for (int i = 0; i < hits.Length; i++)
             {
                 var hit = hits[i];
-                if (hit == box || hit.isTrigger || hit.GetComponent<SolidLevel>() == null)
+                if (hit == box || hit.isTrigger || droppingThrough.Contains(hit) || hit.GetComponent<SolidLevel>() == null)
                     continue;
                 if (hit.bounds.max.y > feet.y + 0.3f && hit.bounds.min.y < feet.y)
                     continue;
                 return true;
             }
             return false;
+        }
+
+        bool TryDropThrough()
+        {
+            Vector2 feet = (Vector2)transform.position + box.offset + Vector2.down * (box.size.y * 0.5f);
+            var hits = Physics2D.OverlapCircleAll(feet, 0.2f);
+            bool dropped = false;
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var hit = hits[i];
+                if (hit == null || hit == box || hit.isTrigger || droppingThrough.Contains(hit))
+                    continue;
+                if (hit.GetComponent<PlatformEffector2D>() == null)
+                    continue;
+                if (hit.bounds.max.y > feet.y + 0.22f)
+                    continue;
+                Physics2D.IgnoreCollision(box, hit, true);
+                droppingThrough.Add(hit);
+                dropped = true;
+            }
+            return dropped;
+        }
+
+        void ReleaseClearedPlatforms()
+        {
+            var body = box.bounds;
+            for (int i = droppingThrough.Count - 1; i >= 0; i--)
+            {
+                var platform = droppingThrough[i];
+                if (platform == null || Separated(body, platform.bounds))
+                {
+                    if (platform != null)
+                        Physics2D.IgnoreCollision(box, platform, false);
+                    droppingThrough.RemoveAt(i);
+                }
+            }
+        }
+
+        static bool Separated(Bounds body, Bounds platform)
+        {
+            if (body.max.x < platform.min.x || body.min.x > platform.max.x)
+                return true;
+            if (body.max.y < platform.min.y - 0.02f || body.min.y > platform.max.y + 0.05f)
+                return true;
+            return false;
+        }
+
+        void OnDisable()
+        {
+            for (int i = 0; i < droppingThrough.Count; i++)
+            {
+                if (droppingThrough[i] != null && box != null)
+                    Physics2D.IgnoreCollision(box, droppingThrough[i], false);
+            }
+            droppingThrough.Clear();
         }
 
         void TryAttack()

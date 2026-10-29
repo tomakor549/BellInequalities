@@ -8,10 +8,12 @@ If a play session is already running, stop it and press Play again after a scrip
 
 ## Controls
 
-| | Move | Jump | Attack |
+| | Move | Jump | Drop through a platform | Attack |
 | --- | --- | --- | --- |
-| Alice, red A, bow | A D | W | J or Left Ctrl |
-| Bob, blue B, sword | Left Right | Up | K or Right Ctrl |
+| Alice, red A, bow | A D | W | S | J or Left Ctrl |
+| Bob, blue B, sword | Left Right | Up | Down | K or Right Ctrl |
+
+S or Down passes through the platform under that hero. The stone floor stays solid.
 
 Enter or a click starts the match. Enter also starts again from the results table. Esc pauses. R restarts.
 
