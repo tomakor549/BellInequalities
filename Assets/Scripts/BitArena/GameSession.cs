@@ -206,7 +206,7 @@ namespace BitArena
 
         void SpawnMonster(BitType type, float x)
         {
-            var spawned = BitMonster.Spawn(type, new Vector3(x, 8.35f, 0f));
+            var spawned = BitMonster.Spawn(type, new Vector3(x, 14.5f, 0f));
             spawned.Body.linearVelocity = new Vector2(Random.Range(-3.5f, 3.5f), 0.3f);
             Remember(spawned);
             if (Charlie != null)

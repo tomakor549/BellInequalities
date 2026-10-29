@@ -37,11 +37,24 @@ namespace BitArena
 
         static readonly Step[] Steps =
         {
-            new Step(-5.6f, -1.2f, 2.8f),
-            new Step(1.2f, 5.6f, 2.8f),
-            new Step(-9.3f, -6.5f, 5.14f),
-            new Step(6.5f, 9.3f, 5.14f),
-            new Step(-1.2f, 1.2f, 5.85f)
+            new Step(-14.5f, -7.8f, 2.47f),
+            new Step(-2.2f, 2.5f, 2.71f),
+            new Step(7.9f, 14.4f, 2.35f),
+            new Step(-14.8f, -10.3f, 4.87f),
+            new Step(-6.6f, -3.1f, 4.61f),
+            new Step(-1.9f, 2.1f, 5.48f),
+            new Step(3.3f, 7.4f, 5.01f),
+            new Step(10.6f, 14.9f, 5.17f),
+            new Step(-14.7f, -10.4f, 7.21f),
+            new Step(-6.7f, -2.4f, 7.07f),
+            new Step(1.85f, 6.45f, 7.47f),
+            new Step(10.2f, 14.7f, 7.61f),
+            new Step(-13.7f, -8.6f, 9.54f),
+            new Step(-5.7f, -0.6f, 9.39f),
+            new Step(0.4f, 3.9f, 9.94f),
+            new Step(5.15f, 7.75f, 10.43f),
+            new Step(9.2f, 14.2f, 9.77f),
+            new Step(-2.6f, 2.6f, 12.14f)
         };
 
         Transform visual;
@@ -154,7 +167,7 @@ namespace BitArena
 
             if (transform.position.y < -4f)
             {
-                transform.position = new Vector3(0f, 8.2f, 0f);
+                transform.position = new Vector3(0f, 14.5f, 0f);
                 Body.linearVelocity = Vector2.zero;
                 return;
             }
@@ -196,9 +209,9 @@ namespace BitArena
 
         void Plan(Hero quarry, float feet, out float goalX, out bool wantJump)
         {
-            float heroX = Mathf.Clamp(quarry.transform.position.x, -10.1f, 10.1f);
+            float heroX = Mathf.Clamp(quarry.transform.position.x, -15.5f, 15.5f);
             if (quarry.Body != null)
-                heroX = Mathf.Clamp(heroX + quarry.Body.linearVelocity.x * 0.2f, -10.1f, 10.1f);
+                heroX = Mathf.Clamp(heroX + quarry.Body.linearVelocity.x * 0.2f, -15.5f, 15.5f);
             float heroFeet = quarry.transform.position.y - 0.55f;
             int me = home;
             int them = SurfaceIndex(heroFeet, quarry.transform.position.x);
@@ -230,7 +243,7 @@ namespace BitArena
                 bool goLeft = heroX < transform.position.x - 0.15f
                     || (Mathf.Abs(heroX - transform.position.x) <= 0.15f && (slot & 1) == 0);
                 float exit = goLeft ? ledge.MinX - 1.25f : ledge.MaxX + 1.25f;
-                dropX = Mathf.Clamp(exit, -10.1f, 10.1f);
+                dropX = Mathf.Clamp(exit, -15.5f, 15.5f);
                 dropUntil = Time.time + 1.45f;
             }
 
@@ -244,7 +257,7 @@ namespace BitArena
             if (Mathf.Abs(heroX - transform.position.x) > 1.7f)
             {
                 float flank = ((slot & 1) == 0 ? -1f : 1f) * 0.8f;
-                goalX = Mathf.Clamp(heroX + flank, -10.1f, 10.1f);
+                goalX = Mathf.Clamp(heroX + flank, -15.5f, 15.5f);
             }
         }
 
@@ -279,7 +292,7 @@ namespace BitArena
                 return false;
             if (from < 0)
                 return true;
-            return SpanGap(Steps[from], Steps[to]) <= 2.8f;
+            return SpanGap(Steps[from], Steps[to]) <= 1.5f;
         }
 
         static float SpanGap(Step left, Step right)

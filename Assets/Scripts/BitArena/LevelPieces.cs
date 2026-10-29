@@ -9,9 +9,9 @@ namespace BitArena
     public class ArenaCamera : MonoBehaviour
     {
         public float Shake;
-        public float CenterY = 4.15f;
-        public float HalfWidth = 11.2f;
-        public float HalfHeight = 5.9f;
+        public float CenterY = 7.4f;
+        public float HalfWidth = 16.5f;
+        public float HalfHeight = 9f;
 
         Camera cam;
         Vector3 look;
@@ -33,8 +33,8 @@ namespace BitArena
             if (session != null && session.Phase == MatchPhase.Play && session.Alice != null && session.Bob != null)
             {
                 Vector3 mid = (session.Alice.transform.position + session.Bob.transform.position) * 0.5f;
-                float x = Mathf.Clamp(mid.x * 0.18f, -1.35f, 1.35f);
-                float y = Mathf.Clamp((mid.y - 2.2f) * 0.12f, -0.4f, 0.65f);
+                float x = Mathf.Clamp(mid.x * 0.22f, -2.6f, 2.6f);
+                float y = Mathf.Clamp((mid.y - 6.2f) * 0.32f, -1.5f, 2f);
                 focus = new Vector3(x, CenterY + y, -10f);
             }
             float blend = 1f - Mathf.Exp(-3.5f * Time.unscaledDeltaTime);
