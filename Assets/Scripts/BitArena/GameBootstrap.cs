@@ -22,6 +22,7 @@ namespace BitArena
             SfxSynth.Init(gameObject);
             SetupCamera(session);
             BuildArena();
+            HealthPickup.Create();
             session.Alice = Hero.Create(HeroKind.Alice, new Vector3(-5.2f, 1.2f, 0f));
             session.Bob = Hero.Create(HeroKind.Bob, new Vector3(5.2f, 1.2f, 0f));
             session.Charlie = CharlieBoss.Create(new Vector3(0f, 12.85f, 0f));
