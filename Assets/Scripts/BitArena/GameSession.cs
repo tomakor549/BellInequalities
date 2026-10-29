@@ -7,6 +7,7 @@ namespace BitArena
     {
         Menu,
         MapSelect,
+        HowToPlay,
         Play,
         Paused,
         Won,
@@ -126,7 +127,7 @@ namespace BitArena
         public void MoveMenu(int delta)
         {
             int prev = MenuCursor;
-            MenuCursor = (MenuCursor + delta + 2) % 2;
+            MenuCursor = (MenuCursor + delta + 3) % 3;
             if (prev != MenuCursor)
                 SfxSynth.MenuTick();
         }
@@ -152,6 +153,8 @@ namespace BitArena
         {
             if (MenuCursor == 0)
                 Phase = MatchPhase.MapSelect;
+            else if (MenuCursor == 1)
+                ShowHowToPlay();
             else
                 ExitGame();
         }
@@ -173,6 +176,18 @@ namespace BitArena
 #endif
         }
 
+        public void ShowHowToPlay()
+        {
+            Phase = MatchPhase.HowToPlay;
+            SfxSynth.MenuTick();
+        }
+
+        public void BackToMenu()
+        {
+            Phase = MatchPhase.Menu;
+            SfxSynth.MenuTick();
+        }
+
         public void PollMenu()
         {
             bool results = Phase == MatchPhase.Won || Phase == MatchPhase.Lost;
@@ -187,6 +202,13 @@ namespace BitArena
             bool down = GameInput.Down(KeyCode.DownArrow) || GameInput.Down(KeyCode.S);
             bool left = GameInput.Down(KeyCode.LeftArrow) || GameInput.Down(KeyCode.A);
             bool right = GameInput.Down(KeyCode.RightArrow) || GameInput.Down(KeyCode.D);
+
+            if (Phase == MatchPhase.HowToPlay)
+            {
+                if (pause || accept || menu)
+                    BackToMenu();
+                return;
+            }
 
             if (Phase == MatchPhase.Menu && left)
                 CycleDifficulty(-1);
