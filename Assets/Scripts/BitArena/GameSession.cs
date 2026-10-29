@@ -5,7 +5,8 @@ namespace BitArena
 {
     public enum MatchPhase
     {
-        Title,
+        Menu,
+        MapSelect,
         Play,
         Paused,
         Won,
@@ -54,7 +55,7 @@ namespace BitArena
     {
         public static GameSession I { get; private set; }
 
-        public MatchPhase Phase = MatchPhase.Title;
+        public MatchPhase Phase = MatchPhase.Menu;
         public BitType AliceState = BitType.Zero;
         public BitType BobState = BitType.Zero;
         public Hero Alice;
@@ -79,6 +80,12 @@ namespace BitArena
         float swapUnlockAt;
         float playAgainReadyAt;
         bool playAgain;
+        float matchReadyAt;
+        bool startMatch;
+        int pickedMap;
+
+        public int MenuCursor { get; private set; }
+        public int PickedMap => pickedMap;
 
         public bool SwapLocked => Time.time < swapUnlockAt;
 
@@ -92,15 +99,49 @@ namespace BitArena
             I = this;
         }
 
-        public void ConfigureTitle()
+        public void ShowMenu()
         {
-            Phase = MatchPhase.Title;
+            playAgain = false;
+            startMatch = false;
+            Phase = MatchPhase.Menu;
             Time.timeScale = 1f;
+            MenuCursor = 0;
             CharlieHp = Tune.CharlieLives;
-            CharlieLine = "I am Charlie. Zeros and ones are on the way.";
+            CharlieLine = "";
             if (Alice != null) Alice.Hp = Tune.Hearts;
             if (Bob != null) Bob.Hp = Tune.Hearts;
             if (HealthPickup.Instance != null) HealthPickup.Instance.SetVisible(false);
+            FreezeCast();
+            ShowActor(Alice, false);
+            ShowActor(Bob, false);
+            ShowActor(Charlie, false);
+        }
+
+        public void MoveMenu(int delta)
+        {
+            MenuCursor = (MenuCursor + delta + 2) % 2;
+        }
+
+        public void ConfirmMenu()
+        {
+            if (MenuCursor == 0)
+                Phase = MatchPhase.MapSelect;
+            else
+                ExitGame();
+        }
+
+        public void HighlightMap(int index)
+        {
+            int count = ArenaMaps.All.Length;
+            pickedMap = (index % count + count) % count;
+        }
+
+        public void ExitGame()
+        {
+            Application.Quit();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#endif
         }
 
         public void PollMenu()
@@ -111,15 +152,33 @@ namespace BitArena
                 || GameInput.Down(KeyCode.KeypadEnter)
                 || GameInput.Down(KeyCode.Space);
             bool restart = GameInput.ConsumeRestart() || GameInput.Down(KeyCode.R);
-            bool click = GameInput.Clicked;
             bool pause = GameInput.Down(KeyCode.Escape);
+            bool menu = GameInput.Down(KeyCode.M);
+            bool up = GameInput.Down(KeyCode.UpArrow) || GameInput.Down(KeyCode.W);
+            bool down = GameInput.Down(KeyCode.DownArrow) || GameInput.Down(KeyCode.S);
+            bool left = GameInput.Down(KeyCode.LeftArrow) || GameInput.Down(KeyCode.A);
+            bool right = GameInput.Down(KeyCode.RightArrow) || GameInput.Down(KeyCode.D);
 
-            if (Phase == MatchPhase.Title && (accept || click))
+            if (Phase == MatchPhase.Menu && up)
+                MoveMenu(-1);
+            else if (Phase == MatchPhase.Menu && down)
+                MoveMenu(1);
+            else if (Phase == MatchPhase.Menu && accept)
+                ConfirmMenu();
+            else if (Phase == MatchPhase.MapSelect && left)
+                HighlightMap(pickedMap - 1);
+            else if (Phase == MatchPhase.MapSelect && right)
+                HighlightMap(pickedMap + 1);
+            else if (Phase == MatchPhase.MapSelect && accept)
                 Begin();
-            else if (results && (accept || restart || click))
+            else if (Phase == MatchPhase.MapSelect && pause)
+                ShowMenu();
+            else if (results && (accept || restart))
                 RequestPlayAgain();
             else if ((Phase == MatchPhase.Play || Phase == MatchPhase.Paused) && restart)
                 RequestPlayAgain();
+            else if ((results || Phase == MatchPhase.Paused) && menu)
+                OpenMenu();
             else if (pause && Phase == MatchPhase.Play)
             {
                 Phase = MatchPhase.Paused;
@@ -139,7 +198,20 @@ namespace BitArena
             playAgain = true;
         }
 
+        public void OpenMenu()
+        {
+            ClearEncounter();
+            ShowMenu();
+        }
+
         public void Begin()
+        {
+            ArenaMaps.Select(pickedMap);
+            PlaceCast();
+            startMatch = true;
+        }
+
+        void StartMatch()
         {
             Phase = MatchPhase.Play;
             Time.timeScale = 1f;
@@ -177,6 +249,15 @@ namespace BitArena
                 {
                     playAgainReadyAt = Time.unscaledTime + 0.5f;
                     StartFresh();
+                }
+            }
+            if (startMatch)
+            {
+                startMatch = false;
+                if (Time.unscaledTime >= matchReadyAt)
+                {
+                    matchReadyAt = Time.unscaledTime + 0.35f;
+                    StartMatch();
                 }
             }
             Floaters.RemoveAll(item => Time.time - item.Born > 0.95f);
@@ -223,7 +304,7 @@ namespace BitArena
 
         void SpawnMonster(BitType type, float x)
         {
-            var spawned = BitMonster.Spawn(type, new Vector3(x, 14.5f, 0f));
+            var spawned = BitMonster.Spawn(type, new Vector3(x, BitMonster.SkyDrop, 0f));
             spawned.Body.linearVelocity = new Vector2(Random.Range(-3.5f, 3.5f), 0.3f);
             Remember(spawned);
             if (Charlie != null)
@@ -401,6 +482,18 @@ namespace BitArena
 
         void StartFresh()
         {
+            startMatch = false;
+            matchReadyAt = Time.unscaledTime + 0.35f;
+            ClearEncounter();
+            PlaceCast();
+            if (Rig != null)
+                Rig.Shake = 0f;
+            StartMatch();
+            Physics2D.SyncTransforms();
+        }
+
+        void ClearEncounter()
+        {
             Time.timeScale = 1f;
             var monsters = FindObjectsByType<BitMonster>();
             for (int i = 0; i < monsters.Length; i++)
@@ -425,10 +518,7 @@ namespace BitArena
                 Destroy(arrows[i].gameObject);
             }
 
-            if (Alice != null)
-                Alice.Revive();
-            if (Bob != null)
-                Bob.Revive();
+            Floaters.Clear();
             if (HealthPickup.Instance != null)
             {
                 var pickupBody = HealthPickup.Instance.GetComponent<Rigidbody2D>();
@@ -439,10 +529,51 @@ namespace BitArena
                     pickupBody.angularVelocity = 0f;
                 }
             }
-            if (Rig != null)
-                Rig.Shake = 0f;
-            Begin();
+        }
+
+        void FreezeCast()
+        {
+            FreezeBody(Alice);
+            FreezeBody(Bob);
+        }
+
+        static void FreezeBody(Hero hero)
+        {
+            if (hero == null || hero.Body == null)
+                return;
+            hero.Body.linearVelocity = Vector2.zero;
+            hero.Body.angularVelocity = 0f;
+            hero.Body.simulated = false;
+        }
+
+        void PlaceCast()
+        {
+            var map = ArenaMaps.Active;
+            if (Alice != null)
+            {
+                Alice.MoveHome(map.Alice);
+                Alice.Revive();
+            }
+            if (Bob != null)
+            {
+                Bob.MoveHome(map.Bob);
+                Bob.Revive();
+            }
+            if (Charlie != null)
+                Charlie.MoveHome(map.Charlie);
+            ShowActor(Alice, true);
+            ShowActor(Bob, true);
+            ShowActor(Charlie, true);
             Physics2D.SyncTransforms();
+        }
+
+        static void ShowActor(Component actor, bool visible)
+        {
+            if (actor == null)
+                return;
+            var renderers = actor.GetComponentsInChildren<SpriteRenderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+                renderers[i].enabled = visible;
         }
 
         static void HoldStill()

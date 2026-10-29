@@ -34,28 +34,17 @@ namespace BitArena
         }
 
         static int nextSlot;
+        static Step[] Steps = System.Array.Empty<Step>();
+        public static float SkyDrop { get; private set; } = 14.5f;
 
-        static readonly Step[] Steps =
+        public static void Bind(ArenaShelf[] shelves, float skyDrop)
         {
-            new Step(-14.5f, -7.8f, 2.47f),
-            new Step(-2.2f, 2.5f, 2.71f),
-            new Step(7.9f, 14.4f, 2.35f),
-            new Step(-14.8f, -10.3f, 4.87f),
-            new Step(-6.6f, -3.1f, 4.61f),
-            new Step(-1.9f, 2.1f, 5.48f),
-            new Step(3.3f, 7.4f, 5.01f),
-            new Step(10.6f, 14.9f, 5.17f),
-            new Step(-14.7f, -10.4f, 7.21f),
-            new Step(-6.7f, -2.4f, 7.07f),
-            new Step(1.85f, 6.45f, 7.47f),
-            new Step(10.2f, 14.7f, 7.61f),
-            new Step(-13.7f, -8.6f, 9.54f),
-            new Step(-5.7f, -0.6f, 9.39f),
-            new Step(0.4f, 3.9f, 9.94f),
-            new Step(5.15f, 7.75f, 10.43f),
-            new Step(9.2f, 14.2f, 9.77f),
-            new Step(-2.6f, 2.6f, 12.14f)
-        };
+            var steps = new Step[shelves.Length];
+            for (int i = 0; i < shelves.Length; i++)
+                steps[i] = new Step(shelves[i].MinX, shelves[i].MaxX, shelves[i].Top);
+            Steps = steps;
+            SkyDrop = skyDrop;
+        }
 
         Transform visual;
         SpriteRenderer sprite;
@@ -167,7 +156,7 @@ namespace BitArena
 
             if (transform.position.y < -4f)
             {
-                transform.position = new Vector3(0f, 14.5f, 0f);
+                transform.position = new Vector3(0f, SkyDrop, 0f);
                 Body.linearVelocity = Vector2.zero;
                 return;
             }

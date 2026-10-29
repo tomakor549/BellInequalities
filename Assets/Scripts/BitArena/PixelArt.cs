@@ -19,6 +19,10 @@ namespace BitArena
         public static Sprite Ring;
         public static Sprite Shadow;
         public static Sprite Backdrop;
+        public static Sprite WinterBackdrop;
+        public static Sprite ForestBackdrop;
+        public static Sprite SnowPine;
+        public static Sprite LeafPine;
         public static Sprite Gate;
         public static Sprite HeartPickup;
         public static Texture2D Heart;
@@ -105,6 +109,10 @@ namespace BitArena
             Ring = BuildRing();
             Shadow = BuildShadow();
             Backdrop = BuildBackdrop();
+            WinterBackdrop = BuildWinterBackdrop();
+            ForestBackdrop = BuildForestBackdrop();
+            SnowPine = BuildPine(new Color32(214, 232, 238, 255), new Color32(150, 186, 204, 255), new Color32(92, 64, 48, 255));
+            LeafPine = BuildPine(new Color32(48, 110, 52, 255), new Color32(24, 72, 34, 255), new Color32(92, 58, 32, 255));
             Gate = BuildGate();
             Heart = BuildHeartTex();
             HeartPickup = BuildHeartPickup();
@@ -152,6 +160,11 @@ namespace BitArena
 
         public static Sprite Floor(float width, float height, float ppu = 16f)
         {
+            return Floor(width, height, new Color32(92, 82, 98, 255), ppu);
+        }
+
+        public static Sprite Floor(float width, float height, Color32 tint, float ppu = 16f)
+        {
             int w = Mathf.Max(8, Mathf.RoundToInt(width * ppu));
             int h = Mathf.Max(8, Mathf.RoundToInt(height * ppu));
             var canvas = new Canvas(w, h);
@@ -159,7 +172,6 @@ namespace BitArena
             {
                 for (int x = 0; x < w; x++)
                 {
-                    Color32 tint = new Color32(92, 82, 98, 255);
                     int row = y / 5;
                     int bx = (x + (row % 2 == 0 ? 0 : 7)) % 14;
                     bool grout = bx == 0 || y % 5 == 0;
@@ -462,6 +474,96 @@ namespace BitArena
 
             canvas.Fill(0, 0, w, 36, new Color32(18, 12, 24, 255));
             return canvas.ToSprite(18f, new Vector2(0.5f, 0.42f));
+        }
+
+        static Sprite BuildWinterBackdrop()
+        {
+            const int w = 480;
+            const int h = 270;
+            var canvas = new Canvas(w, h);
+            for (int y = 0; y < h; y++)
+            {
+                float v = y / (float)(h - 1);
+                var sky = Lerp(new Color32(18, 36, 72, 255), new Color32(186, 214, 232, 255), v);
+                for (int x = 0; x < w; x++)
+                {
+                    var c = sky;
+                    if ((x * 13 + y * 29) % 67 == 0 && y > 150)
+                        c = new Color32(245, 250, 255, 255);
+                    if ((x * 19 + y * 7) % 113 == 0 && y < 90)
+                        c = Lerp(c, new Color32(255, 255, 255, 255), 0.85f);
+                    canvas.Set(x, y, c);
+                }
+            }
+
+            canvas.Disc(360, 210, 22, new Color32(248, 250, 255, 255));
+            canvas.Disc(352, 214, 18, new Color32(170, 198, 220, 255));
+            Fir(canvas, 70, 36, 34, 90, new Color32(28, 58, 78, 255));
+            Fir(canvas, 120, 36, 22, 64, new Color32(40, 74, 96, 255));
+            Fir(canvas, 390, 36, 36, 100, new Color32(24, 52, 72, 255));
+            Fir(canvas, 340, 36, 20, 58, new Color32(36, 68, 90, 255));
+            canvas.Fill(0, 0, w, 40, new Color32(214, 228, 236, 255));
+            canvas.Fill(0, 36, w, 6, new Color32(255, 255, 255, 255));
+            return canvas.ToSprite(18f, new Vector2(0.5f, 0.42f));
+        }
+
+        static Sprite BuildForestBackdrop()
+        {
+            const int w = 480;
+            const int h = 270;
+            var canvas = new Canvas(w, h);
+            for (int y = 0; y < h; y++)
+            {
+                float v = y / (float)(h - 1);
+                var sky = Lerp(new Color32(18, 36, 22, 255), new Color32(214, 164, 86, 255), v * 0.85f);
+                for (int x = 0; x < w; x++)
+                {
+                    var c = sky;
+                    if ((x * 11 + y * 17) % 89 == 0 && y > 120 && y < 220)
+                        c = new Color32(255, 230, 140, 255);
+                    canvas.Set(x, y, c);
+                }
+            }
+
+            Trunk(canvas, 48, 30, 16, 70);
+            canvas.Disc(56, 108, 28, new Color32(28, 78, 36, 255));
+            canvas.Disc(40, 96, 18, new Color32(46, 110, 48, 255));
+            Trunk(canvas, 110, 28, 12, 52);
+            canvas.Disc(116, 86, 22, new Color32(22, 64, 30, 255));
+            Trunk(canvas, 400, 30, 18, 78);
+            canvas.Disc(408, 116, 32, new Color32(20, 70, 32, 255));
+            canvas.Disc(388, 100, 20, new Color32(52, 120, 46, 255));
+            Trunk(canvas, 340, 28, 10, 46);
+            canvas.Disc(346, 80, 18, new Color32(30, 86, 38, 255));
+            canvas.Fill(0, 0, w, 34, new Color32(42, 58, 28, 255));
+            canvas.Fill(0, 30, w, 6, new Color32(78, 110, 48, 255));
+            return canvas.ToSprite(18f, new Vector2(0.5f, 0.42f));
+        }
+
+        static void Fir(Canvas canvas, int x, int y, int halfW, int height, Color32 color)
+        {
+            canvas.Fill(x - 3, y, 6, 16, new Color32(70, 52, 40, 255));
+            for (int row = 0; row < height; row++)
+            {
+                float t = row / (float)height;
+                int hw = Mathf.Max(1, Mathf.RoundToInt(halfW * (1f - t)));
+                canvas.Fill(x - hw, y + 12 + row, hw * 2, 1, color);
+            }
+        }
+
+        static void Trunk(Canvas canvas, int x, int y, int width, int height)
+        {
+            canvas.Fill(x, y, width, height, new Color32(72, 46, 28, 255));
+        }
+
+        static Sprite BuildPine(Color32 leaf, Color32 shade, Color32 trunk)
+        {
+            var canvas = new Canvas(32, 48);
+            canvas.Fill(14, 0, 4, 12, trunk);
+            Fir(canvas, 16, 6, 14, 36, leaf);
+            canvas.Fill(8, 22, 6, 2, shade);
+            canvas.Fill(18, 30, 5, 2, shade);
+            return canvas.ToSprite(16f, new Vector2(0.5f, 0f));
         }
 
         static void DrawGlyph(Canvas canvas, int x, int bottom, int scale, string[] rows, Color32 ink, Color32 outline)

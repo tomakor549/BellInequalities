@@ -26,6 +26,12 @@ namespace BitArena
             return boss;
         }
 
+        public void MoveHome(Vector3 position)
+        {
+            home = position;
+            transform.position = position;
+        }
+
         public void Cast()
         {
             castUntil = Time.time + 0.42f;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BitArena
@@ -20,36 +21,26 @@ namespace BitArena
             }
         }
 
-        static readonly PlatformSpawn[] Spawns =
+        PlatformSpawn[] spawns = System.Array.Empty<PlatformSpawn>();
+
+        public void Bind(ArenaShelf[] shelves)
         {
-            // Floor
-            new PlatformSpawn(-13f, -5f, 0.65f),
-            new PlatformSpawn(-4f, 4f, 0.65f),
-            new PlatformSpawn(5f, 13f, 0.65f),
-            // Low platforms
-            new PlatformSpawn(-13.5f, -8.5f, 2.95f),
-            new PlatformSpawn(-1.5f, 1.8f, 3.2f),
-            new PlatformSpawn(8.5f, 13.5f, 2.85f),
-            // Mid platforms
-            new PlatformSpawn(-14f, -11f, 5.35f),
-            new PlatformSpawn(-6f, -3.5f, 5.1f),
-            new PlatformSpawn(-1.5f, 1.5f, 5.95f),
-            new PlatformSpawn(4f, 6.5f, 5.5f),
-            new PlatformSpawn(11.5f, 14f, 5.65f),
-            // High platforms
-            new PlatformSpawn(-14f, -11f, 7.7f),
-            new PlatformSpawn(-6f, -3.5f, 7.55f),
-            new PlatformSpawn(2.5f, 6f, 7.95f),
-            new PlatformSpawn(11f, 14f, 8.1f),
-            // Crown platforms
-            new PlatformSpawn(-13f, -9f, 10.05f),
-            new PlatformSpawn(-5f, -1f, 9.9f),
-            new PlatformSpawn(1f, 3.5f, 10.45f),
-            new PlatformSpawn(5.5f, 7.5f, 10.95f),
-            new PlatformSpawn(10f, 13.5f, 10.25f),
-            // Spire platform
-            new PlatformSpawn(-2f, 2f, 12.65f)
-        };
+            var list = new List<PlatformSpawn>
+            {
+                new PlatformSpawn(-13f, -5f, 0.65f),
+                new PlatformSpawn(-4f, 4f, 0.65f),
+                new PlatformSpawn(5f, 13f, 0.65f)
+            };
+            for (int i = 0; i < shelves.Length; i++)
+            {
+                float min = shelves[i].MinX + 0.45f;
+                float max = shelves[i].MaxX - 0.45f;
+                if (max - min < 0.8f)
+                    continue;
+                list.Add(new PlatformSpawn(min, max, shelves[i].Top + 0.5f));
+            }
+            spawns = list.ToArray();
+        }
 
         Transform visual;
         SpriteRenderer sprite;
@@ -212,14 +203,16 @@ namespace BitArena
                 SfxSynth.ItemTeleport();
             }
 
-            int spawnIndex = Random.Range(0, Spawns.Length);
-            if (spawnIndex == lastSpawnIndex && Spawns.Length > 1)
+            if (spawns.Length == 0)
+                return;
+            int spawnIndex = Random.Range(0, spawns.Length);
+            if (spawnIndex == lastSpawnIndex && spawns.Length > 1)
             {
-                spawnIndex = (spawnIndex + Random.Range(1, Spawns.Length)) % Spawns.Length;
+                spawnIndex = (spawnIndex + Random.Range(1, spawns.Length)) % spawns.Length;
             }
             lastSpawnIndex = spawnIndex;
 
-            var spawn = Spawns[spawnIndex];
+            var spawn = spawns[spawnIndex];
             float x = Random.Range(spawn.MinX, spawn.MaxX);
             float y = spawn.Y;
             transform.position = new Vector3(x, y, 0f);
