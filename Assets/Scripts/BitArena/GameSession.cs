@@ -193,11 +193,8 @@ namespace BitArena
             bool results = Phase == MatchPhase.Won || Phase == MatchPhase.Lost;
             bool accept = GameInput.ConsumeAccept()
                 || GameInput.Down(KeyCode.Return)
-                || GameInput.Down(KeyCode.KeypadEnter)
-                || GameInput.Down(KeyCode.Space);
-            bool restart = GameInput.ConsumeRestart() || GameInput.Down(KeyCode.R);
+                || GameInput.Down(KeyCode.KeypadEnter);
             bool pause = GameInput.Down(KeyCode.Escape);
-            bool menu = GameInput.Down(KeyCode.M);
             bool up = GameInput.Down(KeyCode.UpArrow) || GameInput.Down(KeyCode.W);
             bool down = GameInput.Down(KeyCode.DownArrow) || GameInput.Down(KeyCode.S);
             bool left = GameInput.Down(KeyCode.LeftArrow) || GameInput.Down(KeyCode.A);
@@ -205,7 +202,7 @@ namespace BitArena
 
             if (Phase == MatchPhase.HowToPlay)
             {
-                if (pause || accept || menu)
+                if (pause || accept)
                     BackToMenu();
                 return;
             }
@@ -228,12 +225,8 @@ namespace BitArena
                 Begin();
             else if (Phase == MatchPhase.MapSelect && pause)
                 ShowMenu();
-            else if (results && (accept || restart))
+            else if (results && accept)
                 RequestPlayAgain();
-            else if ((Phase == MatchPhase.Play || Phase == MatchPhase.Paused) && restart)
-                RequestPlayAgain();
-            else if ((results || Phase == MatchPhase.Paused) && menu)
-                OpenMenu();
             else if (pause && Phase == MatchPhase.Play)
             {
                 Phase = MatchPhase.Paused;

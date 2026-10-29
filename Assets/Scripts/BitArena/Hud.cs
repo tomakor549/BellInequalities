@@ -308,7 +308,7 @@ namespace BitArena
         {
             DrawBackdrop(PixelArt.Backdrop, new Color(0.55f, 0.5f, 0.65f, 0.95f), 0.78f);
 
-            float cardW = 1480f;
+            float cardW = 1400f;
             float cardH = 720f;
             float cardX = (W - cardW) * 0.5f;
             float cardY = (H - cardH) * 0.5f;
@@ -325,114 +325,84 @@ namespace BitArena
             Panel(new Rect(cardX + 4f, cardY + 94f, cardW - 8f, 2f), new Color(0.38f, 0.85f, 1f, 0.85f));
 
             Label(new Rect(cardX + 20f, cardY + 12f, cardW - 40f, 46f), "HOW TO PLAY", title, new Color(1f, 0.94f, 0.68f));
-            Label(new Rect(cardX + 20f, cardY + 58f, cardW - 40f, 28f), "Controls, Roles & Game Mechanics for Alice and Bob", small, new Color(0.85f, 0.92f, 1f));
+            Label(new Rect(cardX + 20f, cardY + 58f, cardW - 40f, 28f), "Hero Controls, Objective & Arena Mechanics for Alice and Bob", small, new Color(0.85f, 0.92f, 1f));
 
-            // 3 Columns layout
-            float padding = 28f;
-            float gap = 20f;
-            float colW = (cardW - padding * 2f - gap * 2f) / 3f;
+            // 2 Columns layout: Left = Hero Controls, Right = Gameplay & Quantum Rules
+            float padding = 32f;
+            float gap = 28f;
+            float colW = (cardW - padding * 2f - gap) * 0.5f;
             float colY = cardY + 110f;
 
             // ========== COLUMN 1: HERO CONTROLS ==========
             float c1X = cardX + padding;
 
             // Box 1: Alice
-            float box1H = 240f;
+            float box1H = 235f;
             DrawFrame(new Rect(c1X, colY, colW, box1H),
                 new Color(0.14f, 0.06f, 0.08f, 0.92f),
                 new Color(0.85f, 0.35f, 0.35f, 0.85f), 2.5f);
             Panel(new Rect(c1X + 2f, colY + 2f, colW - 4f, 32f), new Color(0.35f, 0.1f, 0.12f, 0.85f));
             Label(new Rect(c1X, colY + 4f, colW, 26f), "ALICE  (PLAYER 1 · ARCHER)", howHeader, new Color(1f, 0.65f, 0.6f));
 
-            DrawKeyRow(c1X + 14f, colY + 40f, colW - 28f, "A / D", "Move Left / Right", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
-            DrawKeyRow(c1X + 14f, colY + 78f, colW - 28f, "W", "Jump", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
-            DrawKeyRow(c1X + 14f, colY + 116f, colW - 28f, "S", "Drop through platforms", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
-            DrawKeyRow(c1X + 14f, colY + 154f, colW - 28f, "J / L-Ctrl", "Shoot Bow (Ranged attack)", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
-            DrawKeyRow(c1X + 14f, colY + 192f, colW - 28f, "ACTIVE", "Can attack only as Attacker", howKey, howDesc, new Color(1f, 0.7f, 0.7f));
+            DrawKeyRow(c1X + 16f, colY + 40f, colW - 32f, "A / D", "Move Left / Right", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
+            DrawKeyRow(c1X + 16f, colY + 78f, colW - 32f, "W", "Jump", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
+            DrawKeyRow(c1X + 16f, colY + 116f, colW - 32f, "S", "Drop through platforms", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
+            DrawKeyRow(c1X + 16f, colY + 154f, colW - 32f, "J / L-Ctrl", "Shoot Bow (Ranged attack)", howKey, howDesc, new Color(1f, 0.88f, 0.82f));
+            DrawKeyRow(c1X + 16f, colY + 192f, colW - 32f, "ACTIVE", "Can attack only as Attacker", howKey, howDesc, new Color(1f, 0.7f, 0.7f));
 
             // Box 2: Bob
-            float box2Y = colY + box1H + 14f;
-            float box2H = 240f;
+            float box2Y = colY + box1H + 18f;
+            float box2H = 235f;
             DrawFrame(new Rect(c1X, box2Y, colW, box2H),
                 new Color(0.06f, 0.1f, 0.18f, 0.92f),
                 new Color(0.35f, 0.65f, 0.95f, 0.85f), 2.5f);
             Panel(new Rect(c1X + 2f, box2Y + 2f, colW - 4f, 32f), new Color(0.1f, 0.18f, 0.35f, 0.85f));
             Label(new Rect(c1X, box2Y + 4f, colW, 26f), "BOB  (PLAYER 2 · SWORDSMAN)", howHeader, new Color(0.65f, 0.85f, 1f));
 
-            DrawKeyRow(c1X + 14f, box2Y + 40f, colW - 28f, "◄ / ►", "Move Left / Right", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
-            DrawKeyRow(c1X + 14f, box2Y + 78f, colW - 28f, "▲", "Jump", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
-            DrawKeyRow(c1X + 14f, box2Y + 116f, colW - 28f, "▼", "Drop through platforms", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
-            DrawKeyRow(c1X + 14f, box2Y + 154f, colW - 28f, "K / R-Ctrl", "Slash Sword (Melee strike)", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
-            DrawKeyRow(c1X + 14f, box2Y + 192f, colW - 28f, "ACTIVE", "Can attack only as Attacker", howKey, howDesc, new Color(0.7f, 0.85f, 1f));
+            DrawKeyRow(c1X + 16f, box2Y + 40f, colW - 32f, "◄ / ►", "Move Left / Right", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
+            DrawKeyRow(c1X + 16f, box2Y + 78f, colW - 32f, "▲", "Jump", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
+            DrawKeyRow(c1X + 16f, box2Y + 116f, colW - 32f, "▼", "Drop through platforms", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
+            DrawKeyRow(c1X + 16f, box2Y + 154f, colW - 32f, "K / R-Ctrl", "Slash Sword (Melee strike)", howKey, howDesc, new Color(0.82f, 0.9f, 1f));
+            DrawKeyRow(c1X + 16f, box2Y + 192f, colW - 32f, "ACTIVE", "Can attack only as Attacker", howKey, howDesc, new Color(0.7f, 0.85f, 1f));
 
-            // ========== COLUMN 2: SYSTEM & MENU CONTROLS ==========
+            // ========== COLUMN 2: OBJECTIVE & ARENA MECHANICS ==========
             float c2X = c1X + colW + gap;
 
-            // Box 3: Menu Navigation
-            float box3H = 240f;
+            // Box 3: Charlie & Win Condition
+            float box3H = 150f;
             DrawFrame(new Rect(c2X, colY, colW, box3H),
-                new Color(0.08f, 0.08f, 0.14f, 0.92f),
-                new Color(0.85f, 0.68f, 0.28f, 0.85f), 2.5f);
-            Panel(new Rect(c2X + 2f, colY + 2f, colW - 4f, 32f), new Color(0.25f, 0.2f, 0.08f, 0.85f));
-            Label(new Rect(c2X, colY + 4f, colW, 26f), "MENU & NAVIGATION", howHeader, new Color(1f, 0.88f, 0.5f));
-
-            DrawKeyRow(c2X + 14f, colY + 40f, colW - 28f, "▲ ▼ / W S", "Navigate menu options", howKey, howDesc, new Color(0.95f, 0.92f, 0.85f));
-            DrawKeyRow(c2X + 14f, colY + 78f, colW - 28f, "◄ ► / A D", "Change Difficulty / Arena Map", howKey, howDesc, new Color(0.95f, 0.92f, 0.85f));
-            DrawKeyRow(c2X + 14f, colY + 116f, colW - 28f, "ENTER/SPACE", "Confirm selection / Start", howKey, howDesc, new Color(1f, 0.85f, 0.45f));
-            DrawKeyRow(c2X + 14f, colY + 154f, colW - 28f, "MOUSE", "Hover and click any option", howKey, howDesc, new Color(0.95f, 0.92f, 0.85f));
-            DrawKeyRow(c2X + 14f, colY + 192f, colW - 28f, "ESC", "Back to Menu / Cancel", howKey, howDesc, new Color(0.95f, 0.92f, 0.85f));
-
-            // Box 4: Match Shortcuts
-            DrawFrame(new Rect(c2X, box2Y, colW, box2H),
-                new Color(0.08f, 0.08f, 0.14f, 0.92f),
-                new Color(0.55f, 0.4f, 0.8f, 0.85f), 2.5f);
-            Panel(new Rect(c2X + 2f, box2Y + 2f, colW - 4f, 32f), new Color(0.2f, 0.14f, 0.32f, 0.85f));
-            Label(new Rect(c2X, box2Y + 4f, colW, 26f), "MATCH SHORTCUTS", howHeader, new Color(0.85f, 0.75f, 1f));
-
-            DrawKeyRow(c2X + 14f, box2Y + 40f, colW - 28f, "ESC", "Pause / Resume match", howKey, howDesc, new Color(0.92f, 0.9f, 0.98f));
-            DrawKeyRow(c2X + 14f, box2Y + 78f, colW - 28f, "R", "Quick restart match instantly", howKey, howDesc, new Color(0.92f, 0.9f, 0.98f));
-            DrawKeyRow(c2X + 14f, box2Y + 116f, colW - 28f, "M", "Return to Main Menu from Pause", howKey, howDesc, new Color(0.92f, 0.9f, 0.98f));
-            DrawKeyRow(c2X + 14f, box2Y + 154f, colW - 28f, "RESULTS", "Change difficulty & map after match", howKey, howDesc, new Color(1f, 0.85f, 0.45f));
-            DrawKeyRow(c2X + 14f, box2Y + 192f, colW - 28f, "SPACE / R", "Play again on Results screen", howKey, howDesc, new Color(0.92f, 0.9f, 0.98f));
-
-            // ========== COLUMN 3: GAMEPLAY & QUANTUM RULES ==========
-            float c3X = c2X + colW + gap;
-
-            // Box 5: Charlie & Win Condition
-            float box5H = 152f;
-            DrawFrame(new Rect(c3X, colY, colW, box5H),
                 new Color(0.12f, 0.08f, 0.05f, 0.92f),
                 new Color(0.95f, 0.65f, 0.2f, 0.85f), 2.5f);
-            Panel(new Rect(c3X + 2f, colY + 2f, colW - 4f, 30f), new Color(0.3f, 0.16f, 0.06f, 0.85f));
-            Label(new Rect(c3X, colY + 4f, colW, 24f), "OBJECTIVE: DEFEAT CHARLIE", howHeader, new Color(1f, 0.82f, 0.4f));
+            Panel(new Rect(c2X + 2f, colY + 2f, colW - 4f, 30f), new Color(0.3f, 0.16f, 0.06f, 0.85f));
+            Label(new Rect(c2X, colY + 4f, colW, 24f), "OBJECTIVE: DEFEAT CHARLIE", howHeader, new Color(1f, 0.82f, 0.4f));
 
-            Label(new Rect(c3X + 16f, colY + 36f, colW - 32f, 108f),
+            Label(new Rect(c2X + 16f, colY + 36f, colW - 32f, 106f),
                 "Charlie is the quantum observer. When Alice and Bob coordinate to violate the Bell / CHSH inequality bound, Charlie loses one life!\n\nDefeat Charlie by reducing his lives to 0. If both heroes run out of hearts, the match is lost.",
                 howNote, new Color(0.95f, 0.9f, 0.82f));
 
-            // Box 6: Roles & Role Swap
-            float box6Y = colY + box5H + 14f;
-            float box6H = 154f;
-            DrawFrame(new Rect(c3X, box6Y, colW, box6H),
+            // Box 4: Roles & Role Swap
+            float box4Y = colY + box3H + 19f;
+            float box4H = 150f;
+            DrawFrame(new Rect(c2X, box4Y, colW, box4H),
                 new Color(0.08f, 0.06f, 0.14f, 0.92f),
                 new Color(0.8f, 0.45f, 0.85f, 0.85f), 2.5f);
-            Panel(new Rect(c3X + 2f, box6Y + 2f, colW - 4f, 30f), new Color(0.24f, 0.12f, 0.28f, 0.85f));
-            Label(new Rect(c3X, box6Y + 4f, colW, 24f), "ROLE SWAP MECHANIC", howHeader, new Color(1f, 0.72f, 0.95f));
+            Panel(new Rect(c2X + 2f, box4Y + 2f, colW - 4f, 30f), new Color(0.24f, 0.12f, 0.28f, 0.85f));
+            Label(new Rect(c2X, box4Y + 4f, colW, 24f), "ROLE SWAP MECHANIC", howHeader, new Color(1f, 0.72f, 0.95f));
 
-            Label(new Rect(c3X + 16f, box6Y + 36f, colW - 32f, 110f),
-                "At any time, exactly ONE hero is the <color=#ff5555>Attacker</color> (has glowing attack aura & badge) and the other is the <color=#55aaff>Fleer</color>.\n\nOnly the Attacker can slay monsters. Each time a monster is defeated, the roles SWAP immediately between Alice and Bob!",
+            Label(new Rect(c2X + 16f, box4Y + 36f, colW - 32f, 106f),
+                "At any time, exactly ONE hero is the <color=#ff5555>Attacker</color> (has glowing attack aura & badge) and the other is the <color=#55aaff>Fleer</color>.\n\nOnly the Attacker can damage and slay monsters. Each time a monster is defeated, the roles SWAP immediately between Alice and Bob!",
                 howNote, new Color(0.95f, 0.9f, 0.96f));
 
-            // Box 7: Health Pickups
-            float box7Y = box6Y + box6H + 14f;
-            float box7H = 160f;
-            DrawFrame(new Rect(c3X, box7Y, colW, box7H),
+            // Box 5: Health Pickups
+            float box5Y = box4Y + box4H + 19f;
+            float box5H = 150f;
+            DrawFrame(new Rect(c2X, box5Y, colW, box5H),
                 new Color(0.06f, 0.12f, 0.08f, 0.92f),
                 new Color(0.35f, 0.85f, 0.45f, 0.85f), 2.5f);
-            Panel(new Rect(c3X + 2f, box7Y + 2f, colW - 4f, 30f), new Color(0.1f, 0.25f, 0.14f, 0.85f));
-            Label(new Rect(c3X, box7Y + 4f, colW, 24f), "HEALTH PICKUPS  (+1 HP)", howHeader, new Color(0.6f, 1f, 0.75f));
+            Panel(new Rect(c2X + 2f, box5Y + 2f, colW - 4f, 30f), new Color(0.1f, 0.25f, 0.14f, 0.85f));
+            Label(new Rect(c2X, box5Y + 4f, colW, 24f), "HEALTH PICKUPS  (+1 HP)", howHeader, new Color(0.6f, 1f, 0.75f));
 
-            Label(new Rect(c3X + 16f, box7Y + 36f, colW - 32f, 116f),
+            Label(new Rect(c2X + 16f, box5Y + 36f, colW - 32f, 106f),
                 "A glowing heart item randomly appears on arena platforms. When Alice or Bob touches it, they restore <color=#55ff88>+1 Health</color> instantly!\n\nBe quick: every <color=#ffeaa7>5 seconds</color> the heart automatically teleports to a new random platform on the map.",
                 howNote, new Color(0.88f, 0.98f, 0.92f));
 
@@ -440,10 +410,10 @@ namespace BitArena
             float btnW = 460f;
             float btnH = 60f;
             float btnX = cardX + (cardW - btnW) * 0.5f;
-            float btnY = cardY + 630f;
+            float btnY = cardY + 626f;
             Rect backRect = new Rect(btnX, btnY, btnW, btnH);
 
-            if (DrawMenuButton(backRect, "◄  BACK TO MENU  (Esc)", true, new Color(0.38f, 0.85f, 1f), 26f))
+            if (DrawMenuButton(backRect, "◄  BACK TO MENU", true, new Color(0.38f, 0.85f, 1f), 26f))
             {
                 session.BackToMenu();
             }
@@ -451,12 +421,12 @@ namespace BitArena
 
         void DrawKeyRow(float x, float y, float w, string key, string desc, GUIStyle keyStyle, GUIStyle descStyle, Color descColor)
         {
-            float keyW = 136f;
+            float keyW = 140f;
             Panel(new Rect(x, y + 2f, keyW, 26f), new Color(0f, 0f, 0f, 0.45f));
             DrawFrame(new Rect(x, y + 2f, keyW, 26f), new Color(0.2f, 0.16f, 0.28f, 0.9f), new Color(1f, 0.84f, 0.35f, 0.7f), 1.5f);
             Label(new Rect(x, y + 2f, keyW, 26f), key, keyStyle, new Color(1f, 0.9f, 0.5f));
 
-            Label(new Rect(x + keyW + 12f, y, w - keyW - 12f, 30f), desc, descStyle, descColor);
+            Label(new Rect(x + keyW + 14f, y, w - keyW - 14f, 30f), desc, descStyle, descColor);
         }
 
         void DrawDifficulty(GameSession session, float x, float y, float w)
@@ -710,23 +680,23 @@ namespace BitArena
             float btnH = 68f;
             float btnX = cardX + (cardW - btnW) * 0.5f;
 
-            if (DrawMenuButton(new Rect(btnX, cardY + 130f, btnW, btnH), "Resume Fight (Esc)", true, new Color(0.35f, 0.95f, 0.55f), 26f))
+            if (DrawMenuButton(new Rect(btnX, cardY + 130f, btnW, btnH), "Resume Fight", true, new Color(0.35f, 0.95f, 0.55f), 26f))
             {
                 session.Phase = MatchPhase.Play;
                 Time.timeScale = 1f;
             }
 
-            if (DrawMenuButton(new Rect(btnX, cardY + 225f, btnW, btnH), "Restart Match (R)", false, new Color(1f, 0.82f, 0.35f), 26f))
+            if (DrawMenuButton(new Rect(btnX, cardY + 225f, btnW, btnH), "Restart Match", false, new Color(1f, 0.82f, 0.35f), 26f))
             {
                 session.RequestPlayAgain();
             }
 
-            if (DrawMenuButton(new Rect(btnX, cardY + 320f, btnW, btnH), "Main Menu (M)", false, new Color(0.7f, 0.65f, 0.95f), 26f))
+            if (DrawMenuButton(new Rect(btnX, cardY + 320f, btnW, btnH), "Main Menu", false, new Color(0.7f, 0.65f, 0.95f), 26f))
             {
                 session.OpenMenu();
             }
 
-            Label(new Rect(cardX + 20f, cardY + 430f, cardW - 40f, 34f), "Click any button or use shortcut keys", small, new Color(0.78f, 0.76f, 0.84f));
+            Label(new Rect(cardX + 20f, cardY + 430f, cardW - 40f, 34f), "Click any option to continue", small, new Color(0.78f, 0.76f, 0.84f));
         }
 
         void DrawPlay(GameSession session)
@@ -751,7 +721,7 @@ namespace BitArena
             DrawFloaters(session);
             Panel(new Rect(0, 1010, W, 70), new Color(0.03f, 0.02f, 0.06f, 0.7f));
             Label(new Rect(40, 1020, 1840, 46),
-                "Alice: A D, W, S drop, J          Bob: arrows, Down drop, K          R restart, Esc pause",
+                "Alice: A D move, W jump, S drop, J shoot          Bob: arrows move & jump, Down drop, K slash          Esc: Pause",
                 small, new Color(0.9f, 0.9f, 0.86f));
         }
 
@@ -942,13 +912,13 @@ namespace BitArena
             var againBar = new Rect(x + 100f, btnY, btnW, btnH);
             var menuBar = new Rect(x + w - 100f - btnW, btnY, btnW, btnH);
 
-            string againText = won ? "Play Again (Enter)" : "Try Again (Enter / R)";
+            string againText = won ? "Play Again" : "Try Again";
             Color againAccent = won ? new Color(0.35f, 0.95f, 0.55f) : new Color(1f, 0.84f, 0.35f);
 
             if (DrawMenuButton(againBar, againText, true, againAccent, 27f))
                 session.RequestPlayAgain();
 
-            if (DrawMenuButton(menuBar, "Main Menu (M)", false, new Color(0.75f, 0.84f, 0.98f), 27f))
+            if (DrawMenuButton(menuBar, "Main Menu", false, new Color(0.75f, 0.84f, 0.98f), 27f))
                 session.OpenMenu();
         }
 
@@ -957,17 +927,9 @@ namespace BitArena
             if (session == null || evt == null)
                 return false;
             bool results = session.Phase == MatchPhase.Won || session.Phase == MatchPhase.Lost;
-            if (evt.type != EventType.KeyDown)
+            if (!results || evt.type != EventType.KeyDown)
                 return false;
-            bool keyR = evt.keyCode == KeyCode.R || evt.character == 'r' || evt.character == 'R';
-            if (keyR && (results || session.Phase == MatchPhase.Paused))
-                return true;
-            if (!results)
-                return false;
-            if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter || evt.keyCode == KeyCode.Space)
-                return true;
-            char c = evt.character;
-            return c == '\r' || c == '\n' || c == ' ';
+            return evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter;
         }
 
         static void ColumnSpans(out float a, out float b, out float ca, out float cb)
