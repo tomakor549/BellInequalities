@@ -100,6 +100,7 @@ namespace BitArena
             CharlieLine = "I am Charlie. Zeros and ones are on the way.";
             if (Alice != null) Alice.Hp = Tune.Hearts;
             if (Bob != null) Bob.Hp = Tune.Hearts;
+            if (HealthPickup.Instance != null) HealthPickup.Instance.SetVisible(false);
         }
 
         public void PollMenu()
@@ -163,6 +164,7 @@ namespace BitArena
             SpawnMonster(BitType.Zero, -0.4f);
             SpawnMonster(BitType.One, 0.4f);
             spawnIn = 1.15f;
+            if (HealthPickup.Instance != null) HealthPickup.Instance.ResetForMatch();
         }
 
         void Update()
@@ -427,10 +429,20 @@ namespace BitArena
                 Alice.Revive();
             if (Bob != null)
                 Bob.Revive();
-            Physics2D.SyncTransforms();
+            if (HealthPickup.Instance != null)
+            {
+                var pickupBody = HealthPickup.Instance.GetComponent<Rigidbody2D>();
+                if (pickupBody != null)
+                {
+                    pickupBody.simulated = true;
+                    pickupBody.linearVelocity = Vector2.zero;
+                    pickupBody.angularVelocity = 0f;
+                }
+            }
             if (Rig != null)
                 Rig.Shake = 0f;
             Begin();
+            Physics2D.SyncTransforms();
         }
 
         static void HoldStill()

@@ -14,6 +14,8 @@ namespace BitArena
         static AudioClip swapClip;
         static AudioClip winClip;
         static AudioClip loseClip;
+        static AudioClip healClip;
+        static AudioClip teleportClip;
 
         AudioSource source;
 
@@ -35,6 +37,8 @@ namespace BitArena
                 swapClip = Chord(440f, 660f, 0.14f, 0.18f);
                 winClip = Chord(523f, 784f, 0.28f, 0.2f);
                 loseClip = Tone(180f, 0.35f, 0.22f, true);
+                healClip = HealArpeggio(0.24f, 0.22f);
+                teleportClip = Tone(720f, 0.11f, 0.12f, true);
             }
         }
 
@@ -47,6 +51,8 @@ namespace BitArena
         public static void Swap() => Play(swapClip);
         public static void Win() => Play(winClip);
         public static void Lose() => Play(loseClip);
+        public static void Heal() => Play(healClip);
+        public static void ItemTeleport() => Play(teleportClip);
 
         static void Play(AudioClip clip)
         {
@@ -65,6 +71,25 @@ namespace BitArena
                 float k = i / (float)count;
                 float f = drop ? Mathf.Lerp(freq, freq * 0.45f, k) : freq;
                 float env = (1f - k) * (1f - k);
+                data[i] = Mathf.Sin(2f * Mathf.PI * f * t) * env * volume;
+            }
+            return ClipFrom(data, rate);
+        }
+
+        static AudioClip HealArpeggio(float duration, float volume)
+        {
+            const int rate = 44100;
+            int count = Mathf.CeilToInt(rate * duration);
+            var data = new float[count];
+            float[] freqs = { 523.25f, 659.25f, 783.99f, 1046.50f };
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)rate;
+                float k = i / (float)count;
+                int noteIdx = Mathf.Clamp((int)(k * 4f), 0, 3);
+                float f = freqs[noteIdx];
+                float noteProgress = (k * 4f) - noteIdx;
+                float env = (1f - noteProgress * 0.6f) * (1f - k * 0.5f);
                 data[i] = Mathf.Sin(2f * Mathf.PI * f * t) * env * volume;
             }
             return ClipFrom(data, rate);
