@@ -20,6 +20,7 @@ namespace BitArena
         public static Sprite Shadow;
         public static Sprite Backdrop;
         public static Sprite Gate;
+        public static Sprite HeartPickup;
         public static Texture2D Heart;
 
         static readonly string[] GlyphA =
@@ -106,6 +107,7 @@ namespace BitArena
             Backdrop = BuildBackdrop();
             Gate = BuildGate();
             Heart = BuildHeartTex();
+            HeartPickup = BuildHeartPickup();
         }
 
         public static SpriteRenderer AddSprite(GameObject go, Sprite sprite, int order)
@@ -344,6 +346,52 @@ namespace BitArena
             canvas.Ring(14, 14, 12, 8, new Color32(255, 210, 90, 255));
             canvas.Disc(14, 14, 5, new Color32(255, 255, 220, 200));
             return canvas.ToSprite(16f, new Vector2(0.5f, 0.5f));
+        }
+
+        static readonly string[] GlyphHeart =
+        {
+            "..1111.....1111..",
+            ".122221...122221.",
+            "12233221.12222221",
+            "12344322122222221",
+            "12344322222222221",
+            "12233222222222221",
+            "12222222222222221",
+            ".122222222222221.",
+            ".122222222222221.",
+            "..1222222222221..",
+            "...12222222221...",
+            "....122222221....",
+            ".....1222221.....",
+            "......12221......",
+            ".......121.......",
+            "........1........"
+        };
+
+        static Sprite BuildHeartPickup()
+        {
+            int h = GlyphHeart.Length;
+            int w = GlyphHeart[0].Length;
+            var canvas = new Canvas(w, h);
+            var outline = new Color32(85, 12, 28, 255);
+            var red = new Color32(250, 48, 76, 255);
+            var pink = new Color32(255, 165, 190, 255);
+            var white = new Color32(255, 255, 255, 255);
+
+            for (int row = 0; row < h; row++)
+            {
+                string line = GlyphHeart[row];
+                int py = h - 1 - row;
+                for (int col = 0; col < w; col++)
+                {
+                    char ch = line[col];
+                    if (ch == '1') canvas.Set(col, py, outline);
+                    else if (ch == '2') canvas.Set(col, py, red);
+                    else if (ch == '3') canvas.Set(col, py, pink);
+                    else if (ch == '4') canvas.Set(col, py, white);
+                }
+            }
+            return canvas.ToSprite(15f, new Vector2(0.5f, 0.45f));
         }
 
         static Texture2D BuildHeartTex()
