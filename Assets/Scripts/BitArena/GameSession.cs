@@ -119,7 +119,10 @@ namespace BitArena
 
         public void MoveMenu(int delta)
         {
+            int prev = MenuCursor;
             MenuCursor = (MenuCursor + delta + 2) % 2;
+            if (prev != MenuCursor)
+                SfxSynth.MenuTick();
         }
 
         public void ConfirmMenu()
@@ -133,7 +136,10 @@ namespace BitArena
         public void HighlightMap(int index)
         {
             int count = ArenaMaps.All.Length;
+            int prev = pickedMap;
             pickedMap = (index % count + count) % count;
+            if (prev != pickedMap)
+                SfxSynth.MenuTick();
         }
 
         public void ExitGame()

@@ -12,6 +12,7 @@ namespace BitArena
         GUIStyle cell;
         GUIStyle again;
         GUIStyle card;
+        GUIStyle badge;
         Texture2D pixel;
         bool ready;
         Vector2 tableScroll;
@@ -46,7 +47,7 @@ namespace BitArena
                     break;
                 case MatchPhase.Paused:
                     DrawPlay(session);
-                    DrawCard(460, 340, 1000, 250, "Paused", "Esc — back to the fight\nR — restart\nM — main menu");
+                    DrawPauseMenu(session);
                     break;
                 case MatchPhase.Won:
                     DrawPlay(session);
@@ -96,6 +97,7 @@ namespace BitArena
             };
             body = Make(font, 28, FontStyle.Normal, TextAnchor.MiddleCenter);
             small = Make(font, 22, FontStyle.Normal, TextAnchor.MiddleCenter);
+            badge = Make(font, 18, FontStyle.Bold, TextAnchor.MiddleCenter);
         }
 
         static GUIStyle Make(Font font, int size, FontStyle style, TextAnchor anchor)
@@ -114,73 +116,373 @@ namespace BitArena
             return gui;
         }
 
-        void DrawMainMenu(GameSession session)
+        static Sprite GetMapBackdrop(ArenaTheme theme)
         {
-            Panel(new Rect(0, 0, W, H), new Color(0.04f, 0.02f, 0.07f, 1f));
-            Label(new Rect(260, 180, 1400, 90), "Alice & Bob", title, new Color(1f, 0.93f, 0.75f));
-            Label(new Rect(260, 270, 1400, 44), "Alice and Bob against Charlie", body, new Color(1f, 0.84f, 0.5f));
-            if (MenuButton(session, 0, 460f, "New Game"))
-                session.ConfirmMenu();
-            if (MenuButton(session, 1, 560f, "Exit"))
-                session.ConfirmMenu();
-            Label(new Rect(260, 680, 1400, 40), "Up and Down, then Enter", small, new Color(0.8f, 0.78f, 0.72f));
+            if (theme == ArenaTheme.Winter)
+                return PixelArt.WinterBackdrop;
+            if (theme == ArenaTheme.Forest)
+                return PixelArt.ForestBackdrop;
+            return PixelArt.Backdrop;
         }
 
-        bool MenuButton(GameSession session, int index, float y, string text)
+        void DrawBackdrop(Sprite sprite, Color tint, float darkOverlay = 0.65f)
         {
-            var rect = new Rect(700f, y, 520f, 72f);
-            bool chosen = session.MenuCursor == index;
+            if (sprite != null && sprite.texture != null)
+            {
+                var oldColor = GUI.color;
+                GUI.color = tint;
+                GUI.DrawTexture(new Rect(0, 0, W, H), sprite.texture, ScaleMode.ScaleAndCrop);
+                GUI.color = oldColor;
+            }
+            Panel(new Rect(0, 0, W, H), new Color(0.04f, 0.02f, 0.08f, darkOverlay));
+            Panel(new Rect(0, 0, W, 6f), new Color(1f, 0.82f, 0.35f, 0.85f));
+            Panel(new Rect(0, H - 6f, W, 6f), new Color(1f, 0.82f, 0.35f, 0.85f));
+        }
+
+        void DrawFrame(Rect rect, Color fill, Color border, float borderThickness = 3f)
+        {
+            Panel(rect, border);
+            Panel(new Rect(rect.x + borderThickness, rect.y + borderThickness,
+                rect.width - borderThickness * 2f, rect.height - borderThickness * 2f), fill);
+            Panel(new Rect(rect.x + borderThickness, rect.y + borderThickness,
+                rect.width - borderThickness * 2f, 2f), new Color(1f, 1f, 1f, 0.18f));
+        }
+
+        void DrawGlowFrame(Rect rect, Color fill, Color border, Color glow, float borderThickness = 4f, float glowSize = 8f)
+        {
+            Panel(new Rect(rect.x - glowSize, rect.y - glowSize,
+                rect.width + glowSize * 2f, rect.height + glowSize * 2f), glow);
+            DrawFrame(rect, fill, border, borderThickness);
+        }
+
+        bool DrawMenuButton(Rect rect, string text, bool chosen, Color accentColor, float fontSize = 28f)
+        {
+            bool hovered = rect.Contains(Event.current.mousePosition);
+
+            // Drop shadow
+            Panel(new Rect(rect.x + 4f, rect.y + 6f, rect.width, rect.height), new Color(0f, 0f, 0f, 0.45f));
+
             if (chosen)
-                Panel(new Rect(rect.x - 8f, rect.y - 8f, rect.width + 16f, rect.height + 16f), new Color(1f, 0.84f, 0.38f, 1f));
-            var oldBg = GUI.backgroundColor;
-            GUI.backgroundColor = chosen ? Color.white : new Color(0.55f, 0.48f, 0.62f);
-            bool hit = GUI.Button(rect, text, again);
-            GUI.backgroundColor = oldBg;
-            if (hit)
-                session.MoveMenu(index - session.MenuCursor);
-            return hit;
+            {
+                float pulse = Mathf.Sin(Time.unscaledTime * 5.5f) * 0.5f + 0.5f;
+                Rect expRect = new Rect(rect.x - 8f, rect.y - 3f, rect.width + 16f, rect.height + 6f);
+
+                Color glow = new Color(accentColor.r, accentColor.g, accentColor.b, 0.35f + pulse * 0.35f);
+                Color border = Color.Lerp(accentColor, Color.white, 0.25f + pulse * 0.45f);
+                Color fill = Color.Lerp(accentColor, new Color(1f, 0.94f, 0.65f), 0.28f);
+
+                DrawGlowFrame(expRect, fill, border, glow, 4f, 8f + pulse * 4f);
+
+                string labelText = "▶   " + text.ToUpper() + "   ◀";
+                var style = new GUIStyle(banner)
+                {
+                    fontSize = (int)fontSize + 2,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter
+                };
+
+                // Text shadow
+                var oldColor = style.normal.textColor;
+                style.normal.textColor = new Color(0.7f, 0.45f, 0.1f, 0.5f);
+                GUI.Label(new Rect(expRect.x + 2f, expRect.y + 2f, expRect.width, expRect.height), labelText, style);
+                style.normal.textColor = new Color(0.12f, 0.05f, 0.02f, 1f);
+                GUI.Label(expRect, labelText, style);
+                style.normal.textColor = oldColor;
+
+                return GUI.Button(expRect, GUIContent.none, GUIStyle.none);
+            }
+            else
+            {
+                Color border = hovered
+                    ? Color.Lerp(accentColor, Color.white, 0.45f)
+                    : new Color(0.38f, 0.32f, 0.52f, 0.85f);
+                Color fill = hovered
+                    ? new Color(0.24f, 0.18f, 0.36f, 0.98f)
+                    : new Color(0.12f, 0.09f, 0.19f, 0.95f);
+                Color textColor = hovered
+                    ? Color.white
+                    : new Color(0.88f, 0.86f, 0.94f);
+
+                if (hovered)
+                {
+                    Panel(new Rect(rect.x - 3f, rect.y - 3f, rect.width + 6f, rect.height + 6f),
+                        new Color(accentColor.r, accentColor.g, accentColor.b, 0.25f));
+                }
+
+                DrawFrame(rect, fill, border, hovered ? 3.5f : 2.5f);
+
+                var style = new GUIStyle(banner)
+                {
+                    fontSize = (int)fontSize,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter
+                };
+                Label(rect, text, style, textColor);
+
+                return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+            }
+        }
+
+        void DrawMainMenu(GameSession session)
+        {
+            DrawBackdrop(PixelArt.Backdrop, new Color(0.65f, 0.6f, 0.75f, 0.9f), 0.66f);
+
+            float cardW = 820f;
+            float cardH = 750f;
+            float cardX = (W - cardW) * 0.5f;
+            float cardY = 160f;
+
+            // Main glowing modal frame
+            DrawGlowFrame(new Rect(cardX, cardY, cardW, cardH),
+                new Color(0.07f, 0.045f, 0.12f, 0.96f),
+                new Color(0.85f, 0.68f, 0.28f, 0.95f),
+                new Color(0.45f, 0.22f, 0.6f, 0.4f),
+                4f, 10f);
+
+            // Card header plate
+            Panel(new Rect(cardX + 4f, cardY + 4f, cardW - 8f, 190f), new Color(0.14f, 0.08f, 0.22f, 0.75f));
+            Panel(new Rect(cardX + 4f, cardY + 194f, cardW - 8f, 2f), new Color(1f, 0.82f, 0.35f, 0.85f));
+
+            Label(new Rect(cardX + 20f, cardY + 24f, cardW - 40f, 80f), "ALICE & BOB", title, new Color(1f, 0.94f, 0.68f));
+            Label(new Rect(cardX + 20f, cardY + 104f, cardW - 40f, 36f), "Cooperative Quantum Arena · Against Charlie", body, new Color(1f, 0.84f, 0.52f));
+
+            // Hero badges row
+            float badgeW = 310f;
+            float badgeH = 36f;
+            float badgeY = cardY + 146f;
+
+            // Alice badge
+            Panel(new Rect(cardX + 60f, badgeY, badgeW, badgeH), new Color(0.38f, 0.08f, 0.08f, 0.85f));
+            Panel(new Rect(cardX + 60f, badgeY, badgeW, 2f), new Color(1f, 0.45f, 0.4f, 0.9f));
+            Label(new Rect(cardX + 60f, badgeY, badgeW, badgeH), "<color=#ff7675>Alice</color> (Bow · Jump W)", small, new Color(1f, 0.8f, 0.8f));
+
+            // Bob badge
+            Panel(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, badgeH), new Color(0.08f, 0.2f, 0.42f, 0.85f));
+            Panel(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, 2f), new Color(0.45f, 0.75f, 1f, 0.9f));
+            Label(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, badgeH), "<color=#74b9ff>Bob</color> (Sword · Jump Up)", small, new Color(0.8f, 0.9f, 1f));
+
+            // Buttons
+            float btnW = 560f;
+            float btnH = 78f;
+            float btnX = cardX + (cardW - btnW) * 0.5f;
+
+            Rect rect0 = new Rect(btnX, cardY + 260f, btnW, btnH);
+            Rect rect1 = new Rect(btnX, cardY + 370f, btnW, btnH);
+
+            if (rect0.Contains(Event.current.mousePosition) && session.MenuCursor != 0)
+                session.MoveMenu(-session.MenuCursor);
+            else if (rect1.Contains(Event.current.mousePosition) && session.MenuCursor != 1)
+                session.MoveMenu(1 - session.MenuCursor);
+
+            if (DrawMenuButton(rect0, "New Game", session.MenuCursor == 0, new Color(1f, 0.84f, 0.32f), 30f))
+                session.ConfirmMenu();
+
+            if (DrawMenuButton(rect1, "Exit Game", session.MenuCursor == 1, new Color(1f, 0.45f, 0.38f), 30f))
+                session.ConfirmMenu();
+
+            // Instructions footer panel inside card
+            Panel(new Rect(cardX + 60f, cardY + 500f, cardW - 120f, 110f), new Color(0.04f, 0.02f, 0.08f, 0.75f));
+            Panel(new Rect(cardX + 60f, cardY + 500f, cardW - 120f, 2f), new Color(1f, 0.82f, 0.35f, 0.35f));
+
+            Label(new Rect(cardX + 80f, cardY + 514f, cardW - 160f, 34f),
+                "▲ ▼ / W S  Navigate Options", body, new Color(0.96f, 0.94f, 0.88f));
+            Label(new Rect(cardX + 80f, cardY + 556f, cardW - 160f, 34f),
+                "ENTER or SPACE  Confirm Selection", body, new Color(1f, 0.84f, 0.42f));
+
+            Label(new Rect(0, H - 42f, W, 32f), "Two Players · One Keyboard · Defeat Charlie", small, new Color(0.72f, 0.7f, 0.78f));
         }
 
         void DrawMapSelect(GameSession session)
         {
-            Panel(new Rect(0, 0, W, H), new Color(0.04f, 0.02f, 0.07f, 1f));
-            Label(new Rect(260, 70, 1400, 80), "New Game", title, new Color(1f, 0.93f, 0.75f));
-            Label(new Rect(260, 150, 1400, 40), "Choose a field", body, new Color(1f, 0.86f, 0.55f));
+            var currentMap = ArenaMaps.All[Mathf.Clamp(session.PickedMap, 0, ArenaMaps.All.Length - 1)];
+            Sprite bgSprite = GetMapBackdrop(currentMap.Theme);
+            DrawBackdrop(bgSprite, currentMap.Sky, 0.62f);
 
-            float cardW = 460f;
-            float gap = 36f;
+            // Title Header
+            Label(new Rect(260, 40, 1400, 70), "SELECT BATTLEFIELD", title, new Color(1f, 0.93f, 0.68f));
+            Label(new Rect(260, 114, 1400, 36), "Choose the arena where Alice and Bob face Charlie", body, new Color(1f, 0.84f, 0.5f));
+
+            float cardW = 480f;
+            float gap = 38f;
             float x0 = (W - (cardW * 3f + gap * 2f)) * 0.5f;
+            float baseCardY = 175f;
+            float baseCardH = 410f;
+
             for (int i = 0; i < ArenaMaps.All.Length; i++)
             {
                 var map = ArenaMaps.All[i];
-                var rect = new Rect(x0 + i * (cardW + gap), 240f, cardW, 280f);
-                if (i == session.PickedMap)
-                    Panel(new Rect(rect.x - 8f, rect.y - 8f, rect.width + 16f, rect.height + 16f), new Color(1f, 0.84f, 0.38f, 1f));
-                var oldBg = GUI.backgroundColor;
-                GUI.backgroundColor = i == session.PickedMap ? Color.white : map.Card;
-                if (GUI.Button(rect, map.Name + "\n\n" + map.Blurb, card))
+                bool chosen = i == session.PickedMap;
+
+                Color themeColor = map.Theme == ArenaTheme.Winter
+                    ? new Color(0.35f, 0.85f, 1f)
+                    : map.Theme == ArenaTheme.Forest
+                        ? new Color(0.45f, 0.95f, 0.5f)
+                        : new Color(1f, 0.84f, 0.35f);
+
+                string themeIcon = map.Theme == ArenaTheme.Winter ? "❄"
+                    : map.Theme == ArenaTheme.Forest ? "🌲" : "🏛";
+
+                Rect cardRect = chosen
+                    ? new Rect(x0 + i * (cardW + gap) - 6f, baseCardY - 8f, cardW + 12f, baseCardH + 16f)
+                    : new Rect(x0 + i * (cardW + gap), baseCardY, cardW, baseCardH);
+
+                bool hovered = cardRect.Contains(Event.current.mousePosition);
+
+                // Drop shadow
+                Panel(new Rect(cardRect.x + 6f, cardRect.y + 8f, cardRect.width, cardRect.height), new Color(0f, 0f, 0f, 0.55f));
+
+                if (chosen)
+                {
+                    float pulse = Mathf.Sin(Time.unscaledTime * 5.5f) * 0.5f + 0.5f;
+                    Color glow = new Color(themeColor.r, themeColor.g, themeColor.b, 0.4f + pulse * 0.35f);
+                    Color border = Color.Lerp(themeColor, Color.white, 0.35f + pulse * 0.35f);
+                    Color fill = new Color(0.09f, 0.06f, 0.16f, 0.96f);
+
+                    DrawGlowFrame(cardRect, fill, border, glow, 4f, 10f + pulse * 4f);
+
+                    // Top Selection Pill Banner
+                    float pillW = 280f;
+                    float pillH = 38f;
+                    Rect pillRect = new Rect(cardRect.x + (cardRect.width - pillW) * 0.5f, cardRect.y - 19f, pillW, pillH);
+                    Panel(pillRect, border);
+                    Label(pillRect, "★  SELECTED ARENA  ★", badge, new Color(0.12f, 0.05f, 0.02f));
+
+                    // Header banner inside card
+                    Panel(new Rect(cardRect.x + 4f, cardRect.y + 22f, cardRect.width - 8f, 84f),
+                        new Color(themeColor.r * 0.35f, themeColor.g * 0.35f, themeColor.b * 0.35f, 0.85f));
+                    Panel(new Rect(cardRect.x + 4f, cardRect.y + 106f, cardRect.width - 8f, 2f), border);
+
+                    Label(new Rect(cardRect.x + 10f, cardRect.y + 28f, cardRect.width - 20f, 44f),
+                        themeIcon + "  " + map.Name.ToUpper(), banner, Color.white);
+                    Label(new Rect(cardRect.x + 10f, cardRect.y + 72f, cardRect.width - 20f, 26f),
+                        "ACTIVE BATTLEFIELD", small, themeColor);
+
+                    // Card body blurb
+                    Label(new Rect(cardRect.x + 24f, cardRect.y + 130f, cardRect.width - 48f, 130f),
+                        map.Blurb, body, new Color(0.96f, 0.94f, 0.88f));
+
+                    // Shelf count / arena detail pill
+                    Panel(new Rect(cardRect.x + 36f, cardRect.y + 285f, cardRect.width - 72f, 44f),
+                        new Color(0f, 0f, 0f, 0.45f));
+                    Panel(new Rect(cardRect.x + 36f, cardRect.y + 285f, cardRect.width - 72f, 2f),
+                        new Color(themeColor.r, themeColor.g, themeColor.b, 0.5f));
+                    int shelfCount = map.Shelves != null ? map.Shelves.Length : 0;
+                    Label(new Rect(cardRect.x + 36f, cardRect.y + 287f, cardRect.width - 72f, 40f),
+                        "Platforms: " + shelfCount + " shelves · Ready",
+                        small, themeColor);
+
+                    // Press Enter prompt tag
+                    Label(new Rect(cardRect.x + 20f, cardRect.y + 355f, cardRect.width - 40f, 34f),
+                        "▶ Press ENTER to play here ◀", small, Color.white);
+                }
+                else
+                {
+                    Color border = hovered
+                        ? Color.Lerp(themeColor, Color.white, 0.45f)
+                        : new Color(0.32f, 0.28f, 0.42f, 0.8f);
+                    Color fill = hovered
+                        ? new Color(0.18f, 0.14f, 0.26f, 0.96f)
+                        : new Color(0.08f, 0.05f, 0.13f, 0.92f);
+
+                    if (hovered)
+                    {
+                        Panel(new Rect(cardRect.x - 3f, cardRect.y - 3f, cardRect.width + 6f, cardRect.height + 6f),
+                            new Color(themeColor.r, themeColor.g, themeColor.b, 0.2f));
+                    }
+
+                    DrawFrame(cardRect, fill, border, hovered ? 3.5f : 2.5f);
+
+                    // Header
+                    Panel(new Rect(cardRect.x + 3f, cardRect.y + 12f, cardRect.width - 6f, 70f),
+                        new Color(0f, 0f, 0f, 0.35f));
+                    Label(new Rect(cardRect.x + 10f, cardRect.y + 22f, cardRect.width - 20f, 42f),
+                        themeIcon + "  " + map.Name, banner, hovered ? Color.white : new Color(0.85f, 0.82f, 0.92f));
+
+                    // Blurb
+                    Label(new Rect(cardRect.x + 20f, cardRect.y + 115f, cardRect.width - 40f, 140f),
+                        map.Blurb, body, new Color(0.78f, 0.76f, 0.84f));
+
+                    // Click to pick hint
+                    Label(new Rect(cardRect.x + 20f, cardRect.y + 340f, cardRect.width - 40f, 34f),
+                        hovered ? "Click to Select" : "← → or Click to pick", small, hovered ? themeColor : new Color(0.6f, 0.58f, 0.68f));
+                }
+
+                if (GUI.Button(cardRect, GUIContent.none, GUIStyle.none))
+                {
                     session.HighlightMap(i);
-                GUI.backgroundColor = oldBg;
+                }
             }
 
-            var start = new Rect(480f, 620f, 440f, 68f);
-            var back = new Rect(1000f, 620f, 440f, 68f);
-            var old = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(1f, 0.84f, 0.38f);
-            bool go = GUI.Button(start, "Start", again);
-            GUI.backgroundColor = new Color(0.75f, 0.84f, 0.98f);
-            bool leave = GUI.Button(back, "Back", again);
-            GUI.backgroundColor = old;
-            if (go)
+            // Bottom Action Buttons
+            float btnW = 440f;
+            float btnH = 76f;
+            float btnY = 630f;
+
+            var startRect = new Rect(W * 0.5f - btnW - 25f, btnY, btnW, btnH);
+            var backRect = new Rect(W * 0.5f + 25f, btnY, btnW, btnH);
+
+            var emeraldAccent = new Color(0.35f, 0.95f, 0.55f);
+            var purpleAccent = new Color(0.72f, 0.68f, 0.95f);
+
+            if (DrawMenuButton(startRect, "Start Match", true, emeraldAccent, 28f))
                 session.Begin();
-            if (leave)
+
+            if (DrawMenuButton(backRect, "Back to Menu", false, purpleAccent, 28f))
                 session.ShowMenu();
 
-            Label(new Rect(220, 730, 1480, 120),
-                "Left and Right choose the field. Enter or Start begins the match. Esc returns.\n" +
-                "<color=#ff5a4a>Alice</color>  A D, W, S drop, J          " +
-                "<color=#6aa4ff>Bob</color>  arrows, Down drop, K",
+            // Controls Guide Banner
+            Panel(new Rect(180f, 745f, W - 360f, 96f), new Color(0.04f, 0.02f, 0.08f, 0.88f));
+            Panel(new Rect(180f, 745f, W - 360f, 2f), new Color(1f, 0.82f, 0.35f, 0.55f));
+
+            Label(new Rect(200f, 755f, W - 400f, 34f),
+                "Left / Right  choose field   ·   Enter  starts match   ·   Esc  returns to menu",
+                small, new Color(1f, 0.9f, 0.65f));
+
+            Label(new Rect(200f, 792f, W - 400f, 36f),
+                "<color=#ff5a4a>Alice:</color> A D move, W jump, S drop, J shoot          " +
+                "<color=#6aa4ff>Bob:</color> Arrows move & jump, Down drop, K slash",
                 body, new Color(0.92f, 0.9f, 0.84f));
+        }
+
+        void DrawPauseMenu(GameSession session)
+        {
+            Panel(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.65f));
+
+            float cardW = 720f;
+            float cardH = 500f;
+            float cardX = (W - cardW) * 0.5f;
+            float cardY = (H - cardH) * 0.5f;
+
+            DrawGlowFrame(new Rect(cardX, cardY, cardW, cardH),
+                new Color(0.08f, 0.05f, 0.14f, 0.96f),
+                new Color(1f, 0.82f, 0.35f, 0.9f),
+                new Color(0.5f, 0.3f, 0.7f, 0.45f),
+                4f, 10f);
+
+            Label(new Rect(cardX + 20f, cardY + 28f, cardW - 40f, 60f), "GAME PAUSED", title, new Color(1f, 0.92f, 0.68f));
+            Panel(new Rect(cardX + 60f, cardY + 98f, cardW - 120f, 2f), new Color(1f, 0.82f, 0.35f, 0.6f));
+
+            float btnW = 540f;
+            float btnH = 68f;
+            float btnX = cardX + (cardW - btnW) * 0.5f;
+
+            if (DrawMenuButton(new Rect(btnX, cardY + 130f, btnW, btnH), "Resume Fight (Esc)", true, new Color(0.35f, 0.95f, 0.55f), 26f))
+            {
+                session.Phase = MatchPhase.Play;
+                Time.timeScale = 1f;
+            }
+
+            if (DrawMenuButton(new Rect(btnX, cardY + 225f, btnW, btnH), "Restart Match (R)", false, new Color(1f, 0.82f, 0.35f), 26f))
+            {
+                session.RequestPlayAgain();
+            }
+
+            if (DrawMenuButton(new Rect(btnX, cardY + 320f, btnW, btnH), "Main Menu (M)", false, new Color(0.7f, 0.65f, 0.95f), 26f))
+            {
+                session.OpenMenu();
+            }
+
+            Label(new Rect(cardX + 20f, cardY + 430f, cardW - 40f, 34f), "Click any button or use shortcut keys", small, new Color(0.78f, 0.76f, 0.84f));
         }
 
         void DrawPlay(GameSession session)
@@ -327,17 +629,12 @@ namespace BitArena
                 GUI.EndGroup();
             }
 
-            var againBar = new Rect(x + 80f, y + h - 74f, 520f, 52f);
-            var menuBar = new Rect(x + w - 600f, y + h - 74f, 520f, 52f);
-            var oldBg = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(1f, 0.84f, 0.38f);
-            bool hit = GUI.Button(againBar, "Play again", again);
-            GUI.backgroundColor = new Color(0.75f, 0.84f, 0.98f);
-            bool menu = GUI.Button(menuBar, "Main menu", again);
-            GUI.backgroundColor = oldBg;
-            if (hit)
+            var againBar = new Rect(x + 80f, y + h - 78f, 520f, 60f);
+            var menuBar = new Rect(x + w - 600f, y + h - 78f, 520f, 60f);
+
+            if (DrawMenuButton(againBar, "Play Again (Enter)", true, new Color(1f, 0.84f, 0.35f), 26f))
                 session.RequestPlayAgain();
-            if (menu)
+            if (DrawMenuButton(menuBar, "Main Menu (M)", false, new Color(0.75f, 0.84f, 0.98f), 26f))
                 session.OpenMenu();
         }
 
@@ -438,6 +735,5 @@ namespace BitArena
             GUI.Label(rect, text, style);
             style.normal.textColor = previous;
         }
-
     }
 }

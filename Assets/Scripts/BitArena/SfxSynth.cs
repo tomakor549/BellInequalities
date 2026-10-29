@@ -16,6 +16,7 @@ namespace BitArena
         static AudioClip loseClip;
         static AudioClip healClip;
         static AudioClip teleportClip;
+        static AudioClip menuTickClip;
 
         AudioSource source;
 
@@ -39,6 +40,7 @@ namespace BitArena
                 loseClip = Tone(180f, 0.35f, 0.22f, true);
                 healClip = HealArpeggio(0.24f, 0.22f);
                 teleportClip = Tone(720f, 0.11f, 0.12f, true);
+                menuTickClip = Tone(880f, 0.04f, 0.14f, false);
             }
         }
 
@@ -53,6 +55,7 @@ namespace BitArena
         public static void Lose() => Play(loseClip);
         public static void Heal() => Play(healClip);
         public static void ItemTeleport() => Play(teleportClip);
+        public static void MenuTick() => Play(menuTickClip);
 
         static void Play(AudioClip clip)
         {
