@@ -94,8 +94,8 @@ namespace BitArena
             Label(new Rect(340, 170, 1240, 40), "Alice and Bob against Charlie", body, new Color(1f, 0.8f, 0.45f));
             string text =
                 "Two players, one keyboard. Press Enter or click to start.\n\n" +
-                "<color=#ff5a4a>Alice</color> — red A, bow.   A D move, W jumps, J shoots.\n" +
-                "<color=#6aa4ff>Bob</color> — blue B, sword.   Arrow keys move and jump, K swings.\n\n" +
+                "<color=#ff5a4a>Alice</color> — red A, bow.   A D move, W jumps, S drops down, J shoots.\n" +
+                "<color=#6aa4ff>Bob</color> — blue B, sword.   Arrow keys move and jump, Down drops, K swings.\n\n" +
                 "Only one of you attacks. The other cannot strike, but a monster hit hurts either of you.\n" +
                 "At most three monsters are out, always including at least one 0 and one 1.\n" +
                 "Alice and Bob each have a state, 0 or 1. On your turn, kill either bit.\n" +
@@ -130,7 +130,7 @@ namespace BitArena
             DrawFloaters(session);
             Panel(new Rect(0, 1010, W, 70), new Color(0.03f, 0.02f, 0.06f, 0.7f));
             Label(new Rect(40, 1020, 1840, 46),
-                "Alice: A D, W, J          Bob: arrow keys, K          R restart, Esc pause",
+                "Alice: A D, W, S drop, J          Bob: arrows, Down drop, K          R restart, Esc pause",
                 small, new Color(0.9f, 0.9f, 0.86f));
         }
 
