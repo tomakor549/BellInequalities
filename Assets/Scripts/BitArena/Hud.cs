@@ -261,14 +261,15 @@ namespace BitArena
             Panel(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, 2f), new Color(0.45f, 0.75f, 1f, 0.9f));
             Label(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, badgeH), "<color=#74b9ff>Bob</color> (Sword · Jump Up)", small, new Color(0.8f, 0.9f, 1f));
 
+            // Buttons
             float btnW = 560f;
+            float btnH = 78f;
             float btnX = cardX + (cardW - btnW) * 0.5f;
+
             DrawDifficulty(session, btnX, cardY + 208f, btnW);
 
-            // Buttons
-            float btnH = 72f;
-            Rect rect0 = new Rect(btnX, cardY + 360f, btnW, btnH);
-            Rect rect1 = new Rect(btnX, cardY + 448f, btnW, btnH);
+            Rect rect0 = new Rect(btnX, cardY + 338f, btnW, btnH);
+            Rect rect1 = new Rect(btnX, cardY + 438f, btnW, btnH);
 
             if (rect0.Contains(Event.current.mousePosition) && session.MenuCursor != 0)
                 session.MoveMenu(-session.MenuCursor);
@@ -282,14 +283,14 @@ namespace BitArena
                 session.ConfirmMenu();
 
             // Instructions footer panel inside card
-            Panel(new Rect(cardX + 60f, cardY + 540f, cardW - 120f, 150f), new Color(0.04f, 0.02f, 0.08f, 0.75f));
+            Panel(new Rect(cardX + 60f, cardY + 540f, cardW - 120f, 130f), new Color(0.04f, 0.02f, 0.08f, 0.75f));
             Panel(new Rect(cardX + 60f, cardY + 540f, cardW - 120f, 2f), new Color(1f, 0.82f, 0.35f, 0.35f));
 
-            Label(new Rect(cardX + 80f, cardY + 552f, cardW - 160f, 32f),
-                "▲ ▼ / W S  Navigate Options", body, new Color(0.96f, 0.94f, 0.88f));
-            Label(new Rect(cardX + 80f, cardY + 590f, cardW - 160f, 32f),
-                "◀ ▶ / A D  Set Difficulty", body, new Color(0.96f, 0.94f, 0.88f));
-            Label(new Rect(cardX + 80f, cardY + 628f, cardW - 160f, 32f),
+            Label(new Rect(cardX + 80f, cardY + 550f, cardW - 160f, 32f),
+                "▲ ▼ / W S  Navigate Menu", body, new Color(0.96f, 0.94f, 0.88f));
+            Label(new Rect(cardX + 80f, cardY + 588f, cardW - 160f, 32f),
+                "◄ ► / A D  Set Difficulty", body, new Color(0.96f, 0.94f, 0.88f));
+            Label(new Rect(cardX + 80f, cardY + 626f, cardW - 160f, 32f),
                 "ENTER or SPACE  Confirm Selection", body, new Color(1f, 0.84f, 0.42f));
 
             Label(new Rect(0, H - 42f, W, 32f), "Two Players · One Keyboard · Defeat Charlie", small, new Color(0.72f, 0.7f, 0.78f));
@@ -297,7 +298,7 @@ namespace BitArena
 
         void DrawDifficulty(GameSession session, float x, float y, float w)
         {
-            Label(new Rect(x, y, w, 28f), "DIFFICULTY", small, new Color(1f, 0.86f, 0.55f));
+            Label(new Rect(x, y, w, 28f), "DIFFICULTY (Charlie Lives)", small, new Color(1f, 0.86f, 0.55f));
             float barY = y + 32f;
             float barH = 52f;
             int count = GameSession.DifficultyNames.Length;
@@ -326,6 +327,50 @@ namespace BitArena
             }
 
             Label(new Rect(x, barY + barH + 6f, w, 26f), "Charlie has " + session.CharlieMax + " lives", small, new Color(1f, 0.84f, 0.5f));
+        }
+
+        void DrawMapBar(GameSession session, float x, float y, float w)
+        {
+            Label(new Rect(x, y, w, 28f), "BATTLEFIELD ARENA", small, new Color(1f, 0.86f, 0.55f));
+            float barY = y + 32f;
+            float barH = 52f;
+            int count = ArenaMaps.All.Length;
+            float segW = w / count;
+            DrawFrame(new Rect(x, barY, w, barH), new Color(0.1f, 0.07f, 0.16f, 0.96f), new Color(0.55f, 0.42f, 0.18f, 0.95f), 2.5f);
+            for (int i = 0; i < count; i++)
+            {
+                var map = ArenaMaps.All[i];
+                var rect = new Rect(x + i * segW, barY, segW, barH);
+                bool on = session.PickedMap == i;
+                Color themeColor = map.Theme == ArenaTheme.Winter
+                    ? new Color(0.35f, 0.85f, 1f)
+                    : map.Theme == ArenaTheme.Forest
+                        ? new Color(0.45f, 0.95f, 0.5f)
+                        : new Color(1f, 0.84f, 0.35f);
+
+                string icon = map.Theme == ArenaTheme.Winter ? "❄ "
+                    : map.Theme == ArenaTheme.Forest ? "🌲 " : "🏛 ";
+
+                if (on)
+                    Panel(new Rect(rect.x + 3f, rect.y + 3f, rect.width - 6f, rect.height - 6f), themeColor);
+                else if (rect.Contains(Event.current.mousePosition))
+                    Panel(new Rect(rect.x + 3f, rect.y + 3f, rect.width - 6f, rect.height - 6f), new Color(themeColor.r, themeColor.g, themeColor.b, 0.22f));
+
+                if (i > 0)
+                    Panel(new Rect(rect.x, barY + 8f, 2f, barH - 16f), new Color(1f, 0.82f, 0.35f, 0.35f));
+
+                var style = new GUIStyle(small)
+                {
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter
+                };
+                Label(rect, icon + map.Name.ToUpper(), style,
+                    on ? new Color(0.1f, 0.05f, 0.02f) : new Color(0.94f, 0.9f, 0.82f));
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+                    session.HighlightMap(i);
+            }
+
+            Label(new Rect(x, barY + barH + 6f, w, 26f), ArenaMaps.All[session.PickedMap].Name + " arena selected", small, new Color(1f, 0.84f, 0.5f));
         }
 
         void DrawMapSelect(GameSession session)
@@ -623,30 +668,91 @@ namespace BitArena
 
         void DrawResults(GameSession session, bool won)
         {
-            const float x = 310f;
-            const float y = 78f;
-            const float w = 1300f;
-            const float h = 900f;
-            Panel(new Rect(x, y, w, h), new Color(0.05f, 0.03f, 0.09f, 0.94f));
-            Panel(new Rect(x, y, w, 8f), won ? new Color(1f, 0.82f, 0.35f) : new Color(1f, 0.35f, 0.32f));
-            Label(new Rect(x + 40, y + 24, w - 80, 64), won ? "Pair closed" : "Defeat", title, new Color(1f, 0.9f, 0.7f));
-            string sub = won ? "Charlie is down. His lives are gone." : LoseText(session);
-            Label(new Rect(x + 40, y + 92, w - 80, 40), sub, body, new Color(0.92f, 0.9f, 0.84f));
+            var currentMap = ArenaMaps.All[Mathf.Clamp(session.PickedMap, 0, ArenaMaps.All.Length - 1)];
+            Sprite bgSprite = GetMapBackdrop(currentMap.Theme);
+            DrawBackdrop(bgSprite, currentMap.Sky, 0.72f);
 
-            float tableX = x + 36f;
-            float tableW = w - 72f;
-            float inner = tableW - 24f;
-            float headY = y + 150f;
+            const float x = 270f;
+            const float y = 55f;
+            const float w = 1380f;
+            const float h = 970f;
+
+            Color themeBorder = won
+                ? new Color(1f, 0.84f, 0.35f, 0.96f)
+                : new Color(1f, 0.38f, 0.32f, 0.96f);
+            Color themeGlow = won
+                ? new Color(1f, 0.75f, 0.2f, 0.45f)
+                : new Color(0.95f, 0.2f, 0.25f, 0.45f);
+
+            DrawGlowFrame(new Rect(x, y, w, h),
+                new Color(0.06f, 0.04f, 0.11f, 0.97f),
+                themeBorder,
+                themeGlow,
+                4f, 10f);
+
+            // Top Status Badge
+            float badgeW = 340f;
+            float badgeH = 38f;
+            Rect topBadge = new Rect(x + (w - badgeW) * 0.5f, y - 19f, badgeW, badgeH);
+            Panel(topBadge, themeBorder);
+            string badgeText = won ? "★ ★ ★   VICTORY!   ★ ★ ★" : "☠   DEFEAT   ☠";
+            Label(topBadge, badgeText, badge, new Color(0.12f, 0.05f, 0.02f));
+
+            // Header Banner
+            Panel(new Rect(x + 4f, y + 4f, w - 8f, 140f), won
+                ? new Color(0.18f, 0.12f, 0.05f, 0.85f)
+                : new Color(0.2f, 0.06f, 0.08f, 0.85f));
+            Panel(new Rect(x + 4f, y + 144f, w - 8f, 2f), themeBorder);
+
+            string winTitle = "CONGRATULATIONS, ALICE & BOB!";
+            string loseTitle = "YOU WERE DEFEATED!";
+            Label(new Rect(x + 30f, y + 18f, w - 60f, 54f),
+                won ? winTitle : loseTitle,
+                title,
+                won ? new Color(1f, 0.94f, 0.68f) : new Color(1f, 0.65f, 0.58f));
+
+            string winSub = "Charlie's health reached zero! You broke the classical bound and won the match!";
+            string loseSub = LoseText(session) + " — Don't give up! Coordinate your strikes and try again!";
+            Label(new Rect(x + 30f, y + 74f, w - 60f, 32f),
+                won ? winSub : loseSub,
+                body,
+                won ? new Color(1f, 0.86f, 0.52f) : new Color(1f, 0.82f, 0.78f));
+
+            string winNote = "Charlie is defeated! Choose difficulty and map below to play another match.";
+            string loseNote = "Defeat is just a lesson in quantum entanglement. Adjust options and try again!";
+            Label(new Rect(x + 30f, y + 108f, w - 60f, 28f),
+                won ? winNote : loseNote,
+                small,
+                new Color(0.85f, 0.82f, 0.92f));
+
+            // Selector Box: Difficulty and Map options for next attempt
+            float selY = y + 158f;
+            float selW = w - 64f;
+            float selX = x + 32f;
+            float colGap = 32f;
+            float colW = (selW - colGap) * 0.5f;
+
+            DrawDifficulty(session, selX, selY, colW);
+            DrawMapBar(session, selX + colW + colGap, selY, colW);
+
+            // Match Summary Table
+            float tableX = x + 32f;
+            float tableW = w - 64f;
+            float inner = tableW - 20f;
+            float headY = selY + 128f;
+
             DrawResultHeader(tableX, headY, inner);
-            Panel(new Rect(tableX, headY + 42f, inner, 2f), new Color(1f, 0.82f, 0.45f, 0.9f));
+            Panel(new Rect(tableX, headY + 38f, inner, 2f), new Color(1f, 0.82f, 0.45f, 0.8f));
 
-            float listY = headY + 52f;
-            float listH = h - (listY - y) - 88f;
+            float listY = headY + 46f;
+            float listH = (y + h) - listY - 96f;
             int count = session.Rounds.Count;
-            const float rowH = 58f;
+            const float rowH = 54f;
+
             if (count == 0)
             {
-                Label(new Rect(tableX, listY + 16f, inner, 40f), "No finished pairs.", body, new Color(0.8f, 0.78f, 0.72f));
+                Panel(new Rect(tableX, listY, inner, 80f), new Color(0f, 0f, 0f, 0.35f));
+                Label(new Rect(tableX, listY + 22f, inner, 36f), "No finished pairs in this match.", body, new Color(0.8f, 0.78f, 0.72f));
             }
             else
             {
@@ -665,12 +771,21 @@ namespace BitArena
                 GUI.EndGroup();
             }
 
-            var againBar = new Rect(x + 80f, y + h - 78f, 520f, 60f);
-            var menuBar = new Rect(x + w - 600f, y + h - 78f, 520f, 60f);
+            // Bottom Action Buttons
+            float btnW = 500f;
+            float btnH = 68f;
+            float btnY = y + h - 82f;
 
-            if (DrawMenuButton(againBar, "Play Again (Enter)", true, new Color(1f, 0.84f, 0.35f), 26f))
+            var againBar = new Rect(x + 100f, btnY, btnW, btnH);
+            var menuBar = new Rect(x + w - 100f - btnW, btnY, btnW, btnH);
+
+            string againText = won ? "Play Again (Enter)" : "Try Again (Enter / R)";
+            Color againAccent = won ? new Color(0.35f, 0.95f, 0.55f) : new Color(1f, 0.84f, 0.35f);
+
+            if (DrawMenuButton(againBar, againText, true, againAccent, 27f))
                 session.RequestPlayAgain();
-            if (DrawMenuButton(menuBar, "Main Menu (M)", false, new Color(0.75f, 0.84f, 0.98f), 26f))
+
+            if (DrawMenuButton(menuBar, "Main Menu (M)", false, new Color(0.75f, 0.84f, 0.98f), 27f))
                 session.OpenMenu();
         }
 
@@ -750,8 +865,10 @@ namespace BitArena
         static string LoseText(GameSession session)
         {
             if (session.LostHero != null && session.LostHero.Kind == HeroKind.Alice)
-                return "A monster hit Alice.";
-            return "A monster hit Bob.";
+                return "Alice took critical damage from a monster.";
+            if (session.LostHero != null && session.LostHero.Kind == HeroKind.Bob)
+                return "Bob took critical damage from a monster.";
+            return "A hero was knocked out in battle.";
         }
 
         void Panel(Rect rect, Color color)
