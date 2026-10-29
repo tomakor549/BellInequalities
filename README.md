@@ -1,6 +1,6 @@
 # Alice & Bob
 
-A local two-player game for one keyboard. Alice and Bob fight Charlie’s monsters in a tall stair hall. Charlie scores each pair of kills and loses when his five lives are gone.
+A local two-player game for one keyboard. Alice and Bob fight Charlie’s monsters on one of three fields. Charlie scores each pair of kills and loses when his five lives are gone.
 
 Built with Unity 6000.6.7f1 and the Universal Render Pipeline. Open the project, open `Assets/Scenes/SampleScene.unity`, click the Game view, and press Play. The match is created when the scene starts.
 
@@ -15,7 +15,7 @@ If a play session is already running, stop it and press Play again after a scrip
 
 S or Down passes through the platform under that hero. The stone floor stays solid.
 
-Enter or a click starts the match. On the results screen, Play again, Enter, Space, or R starts a new match. Esc pauses. R restarts.
+The game opens on a main menu. New Game leads to the field list: The Hall, Snow Court, or Greenwild. Left and Right choose a field, then Start begins the match. Exit closes the game. On the results screen, Play again, Enter, Space, or R starts the same field again. Main menu or M returns to the main menu. Esc pauses. R restarts.
 
 ## Rules
 
@@ -35,4 +35,4 @@ The equation is not printed during play. The results table at the end lists ever
 
 ## Project
 
-Gameplay code is in `Assets/Scripts/BitArena`. `GameBootstrap` builds the hall, the heroes, and Charlie when Play starts. Sprites are drawn in code. Monsters use the same platform tops as the colliders when they climb and drop.
+Gameplay code is in `Assets/Scripts/BitArena`. The main menu picks a field. `ArenaMaps` builds The Hall, the winter court, or the forest, and the monster steps use those same platform tops. Sprites are drawn in code.

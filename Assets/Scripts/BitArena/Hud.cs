@@ -11,6 +11,7 @@ namespace BitArena
         GUIStyle huge;
         GUIStyle cell;
         GUIStyle again;
+        GUIStyle card;
         Texture2D pixel;
         bool ready;
         Vector2 tableScroll;
@@ -26,7 +27,8 @@ namespace BitArena
 
             var evt = Event.current;
             GameInput.Observe(evt);
-            if (session.Phase == MatchPhase.Won || session.Phase == MatchPhase.Lost)
+            if (session.Phase == MatchPhase.Menu || session.Phase == MatchPhase.MapSelect
+                || session.Phase == MatchPhase.Won || session.Phase == MatchPhase.Lost)
                 GUIUtility.keyboardControl = 0;
             if (WantsFreshMatch(session, evt))
                 session.RequestPlayAgain();
@@ -36,12 +38,15 @@ namespace BitArena
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(Screen.width / W, Screen.height / H, 1f));
             switch (session.Phase)
             {
-                case MatchPhase.Title:
-                    DrawTitle(session);
+                case MatchPhase.Menu:
+                    DrawMainMenu(session);
+                    break;
+                case MatchPhase.MapSelect:
+                    DrawMapSelect(session);
                     break;
                 case MatchPhase.Paused:
                     DrawPlay(session);
-                    DrawCard(460, 360, 1000, 220, "Paused", "Esc — back to the fight\nR — restart");
+                    DrawCard(460, 340, 1000, 250, "Paused", "Esc — back to the fight\nR — restart\nM — main menu");
                     break;
                 case MatchPhase.Won:
                     DrawPlay(session);
@@ -84,6 +89,11 @@ namespace BitArena
             again.normal.textColor = new Color(0.16f, 0.08f, 0.02f);
             again.hover.textColor = new Color(0.16f, 0.08f, 0.02f);
             again.active.textColor = new Color(0.16f, 0.08f, 0.02f);
+            card = new GUIStyle(again)
+            {
+                fontSize = 24,
+                wordWrap = true
+            };
             body = Make(font, 28, FontStyle.Normal, TextAnchor.MiddleCenter);
             small = Make(font, 22, FontStyle.Normal, TextAnchor.MiddleCenter);
         }
@@ -104,26 +114,73 @@ namespace BitArena
             return gui;
         }
 
-        void DrawTitle(GameSession session)
+        void DrawMainMenu(GameSession session)
         {
-            Panel(new Rect(0, 0, W, H), new Color(0.02f, 0.01f, 0.05f, 0.45f));
-            Panel(new Rect(300, 70, 1320, 940), new Color(0.07f, 0.04f, 0.12f, 0.9f));
-            Label(new Rect(340, 90, 1240, 80), "Alice & Bob", title, new Color(1f, 0.93f, 0.75f));
-            Label(new Rect(340, 170, 1240, 40), "Alice and Bob against Charlie", body, new Color(1f, 0.8f, 0.45f));
-            string text =
-                "Two players, one keyboard. Press Enter or click to start.\n\n" +
-                "<color=#ff5a4a>Alice</color> — red A, bow.   A D move, W jumps, S drops down, J shoots.\n" +
-                "<color=#6aa4ff>Bob</color> — blue B, sword.   Arrow keys move and jump, Down drops, K swings.\n\n" +
-                "Only one of you attacks. The other cannot strike, but a monster hit hurts either of you.\n" +
-                "At most three monsters are out, always including at least one 0 and one 1.\n" +
-                "Alice and Bob each have a state, 0 or 1. On your turn, kill either bit.\n" +
-                "Alice strikes while Bob runs, then Bob strikes while Alice runs.\n" +
-                "After both kills, Charlie may lose or recover a life.\n" +
-                "Empty his five lives to win. The pair results appear at the end.\n\n" +
-                "Enter — start      Esc — pause      R — restart";
-            Label(new Rect(360, 240, 1200, 620), text, body, new Color(0.94f, 0.93f, 0.9f));
-            if (!string.IsNullOrEmpty(session.CharlieLine))
-                Label(new Rect(360, 860, 1200, 80), "Charlie: " + session.CharlieLine, small, new Color(1f, 0.84f, 0.45f));
+            Panel(new Rect(0, 0, W, H), new Color(0.04f, 0.02f, 0.07f, 1f));
+            Label(new Rect(260, 180, 1400, 90), "Alice & Bob", title, new Color(1f, 0.93f, 0.75f));
+            Label(new Rect(260, 270, 1400, 44), "Alice and Bob against Charlie", body, new Color(1f, 0.84f, 0.5f));
+            if (MenuButton(session, 0, 460f, "New Game"))
+                session.ConfirmMenu();
+            if (MenuButton(session, 1, 560f, "Exit"))
+                session.ConfirmMenu();
+            Label(new Rect(260, 680, 1400, 40), "Up and Down, then Enter", small, new Color(0.8f, 0.78f, 0.72f));
+        }
+
+        bool MenuButton(GameSession session, int index, float y, string text)
+        {
+            var rect = new Rect(700f, y, 520f, 72f);
+            bool chosen = session.MenuCursor == index;
+            if (chosen)
+                Panel(new Rect(rect.x - 8f, rect.y - 8f, rect.width + 16f, rect.height + 16f), new Color(1f, 0.84f, 0.38f, 1f));
+            var oldBg = GUI.backgroundColor;
+            GUI.backgroundColor = chosen ? Color.white : new Color(0.55f, 0.48f, 0.62f);
+            bool hit = GUI.Button(rect, text, again);
+            GUI.backgroundColor = oldBg;
+            if (hit)
+                session.MoveMenu(index - session.MenuCursor);
+            return hit;
+        }
+
+        void DrawMapSelect(GameSession session)
+        {
+            Panel(new Rect(0, 0, W, H), new Color(0.04f, 0.02f, 0.07f, 1f));
+            Label(new Rect(260, 70, 1400, 80), "New Game", title, new Color(1f, 0.93f, 0.75f));
+            Label(new Rect(260, 150, 1400, 40), "Choose a field", body, new Color(1f, 0.86f, 0.55f));
+
+            float cardW = 460f;
+            float gap = 36f;
+            float x0 = (W - (cardW * 3f + gap * 2f)) * 0.5f;
+            for (int i = 0; i < ArenaMaps.All.Length; i++)
+            {
+                var map = ArenaMaps.All[i];
+                var rect = new Rect(x0 + i * (cardW + gap), 240f, cardW, 280f);
+                if (i == session.PickedMap)
+                    Panel(new Rect(rect.x - 8f, rect.y - 8f, rect.width + 16f, rect.height + 16f), new Color(1f, 0.84f, 0.38f, 1f));
+                var oldBg = GUI.backgroundColor;
+                GUI.backgroundColor = i == session.PickedMap ? Color.white : map.Card;
+                if (GUI.Button(rect, map.Name + "\n\n" + map.Blurb, card))
+                    session.HighlightMap(i);
+                GUI.backgroundColor = oldBg;
+            }
+
+            var start = new Rect(480f, 620f, 440f, 68f);
+            var back = new Rect(1000f, 620f, 440f, 68f);
+            var old = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(1f, 0.84f, 0.38f);
+            bool go = GUI.Button(start, "Start", again);
+            GUI.backgroundColor = new Color(0.75f, 0.84f, 0.98f);
+            bool leave = GUI.Button(back, "Back", again);
+            GUI.backgroundColor = old;
+            if (go)
+                session.Begin();
+            if (leave)
+                session.ShowMenu();
+
+            Label(new Rect(220, 730, 1480, 120),
+                "Left and Right choose the field. Enter or Start begins the match. Esc returns.\n" +
+                "<color=#ff5a4a>Alice</color>  A D, W, S drop, J          " +
+                "<color=#6aa4ff>Bob</color>  arrows, Down drop, K",
+                body, new Color(0.92f, 0.9f, 0.84f));
         }
 
         void DrawPlay(GameSession session)
@@ -270,13 +327,18 @@ namespace BitArena
                 GUI.EndGroup();
             }
 
-            var bar = new Rect(x + 360f, y + h - 74f, w - 720f, 52f);
+            var againBar = new Rect(x + 80f, y + h - 74f, 520f, 52f);
+            var menuBar = new Rect(x + w - 600f, y + h - 74f, 520f, 52f);
             var oldBg = GUI.backgroundColor;
             GUI.backgroundColor = new Color(1f, 0.84f, 0.38f);
-            bool hit = GUI.Button(bar, "Play again", again);
+            bool hit = GUI.Button(againBar, "Play again", again);
+            GUI.backgroundColor = new Color(0.75f, 0.84f, 0.98f);
+            bool menu = GUI.Button(menuBar, "Main menu", again);
             GUI.backgroundColor = oldBg;
             if (hit)
                 session.RequestPlayAgain();
+            if (menu)
+                session.OpenMenu();
         }
 
         static bool WantsFreshMatch(GameSession session, Event evt)
@@ -284,8 +346,6 @@ namespace BitArena
             if (session == null || evt == null)
                 return false;
             bool results = session.Phase == MatchPhase.Won || session.Phase == MatchPhase.Lost;
-            if (results && evt.type == EventType.MouseDown && evt.button == 0)
-                return true;
             if (evt.type != EventType.KeyDown)
                 return false;
             bool keyR = evt.keyCode == KeyCode.R || evt.character == 'r' || evt.character == 'R';

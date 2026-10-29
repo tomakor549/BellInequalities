@@ -265,6 +265,7 @@ namespace BitArena
                 case 'j': return KeyCode.J;
                 case 'k': return KeyCode.K;
                 case 'r': return KeyCode.R;
+                case 'm': return KeyCode.M;
                 case ' ': return KeyCode.Space;
                 case '\n':
                 case '\r': return KeyCode.Return;
@@ -283,6 +284,7 @@ namespace BitArena
                 case KeyCode.J: return Key.J;
                 case KeyCode.K: return Key.K;
                 case KeyCode.R: return Key.R;
+                case KeyCode.M: return Key.M;
                 case KeyCode.Space: return Key.Space;
                 case KeyCode.Escape: return Key.Escape;
                 case KeyCode.Return: return Key.Enter;

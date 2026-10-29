@@ -55,6 +55,11 @@ namespace BitArena
             return hero;
         }
 
+        public void MoveHome(Vector3 position)
+        {
+            home = position;
+        }
+
         public void Revive()
         {
             ReleaseDrops();
