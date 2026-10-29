@@ -94,12 +94,12 @@ namespace BitArena
                 "<color=#ff5a4a>Alice</color> — red A, bow.   A D move, W jumps, J shoots.\n" +
                 "<color=#6aa4ff>Bob</color> — blue B, sword.   Arrow keys move and jump, K swings.\n\n" +
                 "Only one of you attacks. The other cannot strike, but a monster hit hurts either of you.\n" +
-                "At most five monsters are out, always including at least one 0 and one 1.\n" +
-                "Strike the marked bit. If Alice defeats a 1, Bob must defeat a 0 — and the other way around.\n" +
-                "That order costs Charlie a life. A wrong bit falls too, and Charlie heals.\n" +
-                "Empty his five lives to win. After a correct hit, you swap who attacks.\n\n" +
-                "Charlie stands in the back and releases monsters shaped like 0 and 1.\n" +
-                "The mark above a monster shows the bit that continues the order.\n\n" +
+                "At most three monsters are out, always including at least one 0 and one 1.\n" +
+                "Alice and Bob each have their own mission: kill a 0, or kill a 1.\n" +
+                "Alice strikes her bit while Bob runs. Then Bob strikes his bit while Alice runs.\n" +
+                "A correct hit refreshes only that person's mission and costs Charlie a life.\n" +
+                "A wrong bit falls too, and Charlie heals. Empty his five lives to win.\n\n" +
+                "The mark above a monster shows the bit for whoever is attacking.\n\n" +
                 "Enter — start      Esc — pause      R — restart";
             Label(new Rect(360, 240, 1200, 620), text, body, new Color(0.94f, 0.93f, 0.9f));
             if (!string.IsNullOrEmpty(session.CharlieLine))
@@ -128,7 +128,7 @@ namespace BitArena
             DrawFloaters(session);
             Panel(new Rect(0, 1010, W, 70), new Color(0.03f, 0.02f, 0.06f, 0.7f));
             Label(new Rect(40, 1020, 1840, 46),
-                "Alice: A D, W, J          Bob: arrow keys, K          right order hurts Charlie, a wrong bit heals him          R restart, Esc pause",
+                "Alice: A D, W, J          Bob: arrow keys, K          each has their own bit          R restart, Esc pause",
                 small, new Color(0.9f, 0.9f, 0.86f));
         }
 
