@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace BitArena
 {
@@ -78,6 +77,8 @@ namespace BitArena
 
         float spawnIn = 2f;
         float swapUnlockAt;
+        float playAgainReadyAt;
+        bool playAgain;
 
         public bool SwapLocked => Time.time < swapUnlockAt;
 
@@ -103,19 +104,21 @@ namespace BitArena
 
         public void PollMenu()
         {
-            bool start = GameInput.Down(KeyCode.Return)
+            bool results = Phase == MatchPhase.Won || Phase == MatchPhase.Lost;
+            bool accept = GameInput.ConsumeAccept()
+                || GameInput.Down(KeyCode.Return)
                 || GameInput.Down(KeyCode.KeypadEnter)
-                || GameInput.Down(KeyCode.Space)
-                || (Phase == MatchPhase.Title && GameInput.Clicked);
-            bool restart = GameInput.Down(KeyCode.R);
+                || GameInput.Down(KeyCode.Space);
+            bool restart = GameInput.ConsumeRestart() || GameInput.Down(KeyCode.R);
+            bool click = GameInput.Clicked;
             bool pause = GameInput.Down(KeyCode.Escape);
 
-            if (Phase == MatchPhase.Title && start)
+            if (Phase == MatchPhase.Title && (accept || click))
                 Begin();
-            else if ((Phase == MatchPhase.Won || Phase == MatchPhase.Lost) && (start || restart))
-                Restart();
-            else if (Phase == MatchPhase.Play && restart)
-                Restart();
+            else if (results && (accept || restart || click))
+                RequestPlayAgain();
+            else if ((Phase == MatchPhase.Play || Phase == MatchPhase.Paused) && restart)
+                RequestPlayAgain();
             else if (pause && Phase == MatchPhase.Play)
             {
                 Phase = MatchPhase.Paused;
@@ -126,6 +129,13 @@ namespace BitArena
                 Phase = MatchPhase.Play;
                 Time.timeScale = 1f;
             }
+        }
+
+        // SceneManager.LoadScene runs AfterSceneLoad while this object still exists, so Boot
+        // sees the old session and the reloaded scene stays empty.
+        public void RequestPlayAgain()
+        {
+            playAgain = true;
         }
 
         public void Begin()
@@ -146,6 +156,8 @@ namespace BitArena
             Bob.GrantInvulnerability(1.3f);
             LostHero = null;
             LostCause = "";
+            Floaters.Clear();
+            swapUnlockAt = 0f;
             Announce(true);
             TintGate();
             SpawnMonster(BitType.Zero, -0.4f);
@@ -153,15 +165,18 @@ namespace BitArena
             spawnIn = 1.15f;
         }
 
-        public void Restart()
-        {
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        }
-
         void Update()
         {
             PollMenu();
+            if (playAgain)
+            {
+                playAgain = false;
+                if (Time.unscaledTime >= playAgainReadyAt)
+                {
+                    playAgainReadyAt = Time.unscaledTime + 0.5f;
+                    StartFresh();
+                }
+            }
             Floaters.RemoveAll(item => Time.time - item.Born > 0.95f);
             if (Phase != MatchPhase.Play)
                 return;
@@ -364,7 +379,7 @@ namespace BitArena
         void Win()
         {
             Phase = MatchPhase.Won;
-            Time.timeScale = 0f;
+            HoldStill();
             SfxSynth.Win();
             CharlieLine = "Impossible... the pair is closed!";
             BigCallout = "YOU WIN";
@@ -375,11 +390,60 @@ namespace BitArena
         void Lose(Hero hero, string cause)
         {
             Phase = MatchPhase.Lost;
-            Time.timeScale = 0f;
+            HoldStill();
             LostHero = hero;
             LostCause = cause;
             SfxSynth.Lose();
             CharlieLine = "Only the bits remain.";
+        }
+
+        void StartFresh()
+        {
+            Time.timeScale = 1f;
+            var monsters = FindObjectsByType<BitMonster>();
+            for (int i = 0; i < monsters.Length; i++)
+            {
+                var monster = monsters[i];
+                if (monster == null)
+                    continue;
+                monster.Alive = false;
+                if (monster.Body != null)
+                    monster.Body.simulated = false;
+                monster.gameObject.SetActive(false);
+                Destroy(monster.gameObject);
+            }
+            Monsters.Clear();
+
+            var arrows = FindObjectsByType<ArrowShot>();
+            for (int i = 0; i < arrows.Length; i++)
+            {
+                if (arrows[i] == null)
+                    continue;
+                arrows[i].gameObject.SetActive(false);
+                Destroy(arrows[i].gameObject);
+            }
+
+            if (Alice != null)
+                Alice.Revive();
+            if (Bob != null)
+                Bob.Revive();
+            Physics2D.SyncTransforms();
+            if (Rig != null)
+                Rig.Shake = 0f;
+            Begin();
+        }
+
+        static void HoldStill()
+        {
+            // timeScale 0 makes the Unity editor drop Enter before Keyboard.current sees it.
+            Time.timeScale = 1f;
+            var bodies = FindObjectsByType<Rigidbody2D>();
+            for (int i = 0; i < bodies.Length; i++)
+            {
+                bodies[i].linearVelocity = Vector2.zero;
+                bodies[i].angularVelocity = 0f;
+                bodies[i].simulated = false;
+            }
         }
 
         void Announce(bool first)

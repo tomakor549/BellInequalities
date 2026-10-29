@@ -15,7 +15,7 @@ If a play session is already running, stop it and press Play again after a scrip
 
 S or Down passes through the platform under that hero. The stone floor stays solid.
 
-Enter or a click starts the match. Enter also starts again from the results table. Esc pauses. R restarts.
+Enter or a click starts the match. On the results screen, Play again, Enter, Space, or R starts a new match. Esc pauses. R restarts.
 
 ## Rules
 

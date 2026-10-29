@@ -36,6 +36,7 @@ namespace BitArena
         float nextDust;
         SpriteRenderer shadow;
         bool dropRequested;
+        Vector2 home;
         readonly List<Collider2D> droppingThrough = new List<Collider2D>();
 
         const float MoveSpeed = 7.7f;
@@ -49,8 +50,47 @@ namespace BitArena
             go.transform.position = position;
             var hero = go.AddComponent<Hero>();
             hero.Kind = kind;
+            hero.home = position;
             hero.Build();
             return hero;
+        }
+
+        public void Revive()
+        {
+            ReleaseDrops();
+            dropRequested = false;
+            move = 0f;
+            attackDown = false;
+            jumpBuffer = 0f;
+            jumpHeld = false;
+            cutJump = false;
+            coyote = 0f;
+            squash = 0f;
+            wasGrounded = false;
+            nextAttack = 0f;
+            slashUntil = 0f;
+            invulnUntil = 0f;
+            rejectUntil = 0f;
+            nextDust = 0f;
+            facing = Kind == HeroKind.Alice ? 1f : -1f;
+            if (slash != null)
+                slash.enabled = false;
+            if (sprite != null)
+                sprite.color = Color.white;
+            if (visual != null)
+            {
+                visual.localScale = new Vector3(facing, 1f, 1f);
+                visual.localPosition = Vector3.zero;
+            }
+            if (Body != null)
+            {
+                Body.simulated = true;
+                Body.gravityScale = Tune.Gravity;
+                Body.linearVelocity = Vector2.zero;
+                Body.angularVelocity = 0f;
+                Body.position = home;
+            }
+            transform.position = new Vector3(home.x, home.y, 0f);
         }
 
         void Build()
@@ -296,6 +336,11 @@ namespace BitArena
         }
 
         void OnDisable()
+        {
+            ReleaseDrops();
+        }
+
+        void ReleaseDrops()
         {
             for (int i = 0; i < droppingThrough.Count; i++)
             {

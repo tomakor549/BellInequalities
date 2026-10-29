@@ -10,6 +10,7 @@ namespace BitArena
         GUIStyle small;
         GUIStyle huge;
         GUIStyle cell;
+        GUIStyle again;
         Texture2D pixel;
         bool ready;
         Vector2 tableScroll;
@@ -23,7 +24,12 @@ namespace BitArena
             if (session == null)
                 return;
 
-            GameInput.Observe(Event.current);
+            var evt = Event.current;
+            GameInput.Observe(evt);
+            if (session.Phase == MatchPhase.Won || session.Phase == MatchPhase.Lost)
+                GUIUtility.keyboardControl = 0;
+            if (WantsFreshMatch(session, evt))
+                session.RequestPlayAgain();
             Ensure();
 
             var previous = GUI.matrix;
@@ -66,6 +72,18 @@ namespace BitArena
             banner = Make(font, 36, FontStyle.Bold, TextAnchor.MiddleCenter);
             huge = Make(font, 72, FontStyle.Bold, TextAnchor.MiddleCenter);
             cell = Make(font, 26, FontStyle.Bold, TextAnchor.MiddleCenter);
+            again = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 26,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
+            };
+            if (font != null)
+                again.font = font;
+            again.normal.textColor = new Color(0.16f, 0.08f, 0.02f);
+            again.hover.textColor = new Color(0.16f, 0.08f, 0.02f);
+            again.active.textColor = new Color(0.16f, 0.08f, 0.02f);
             body = Make(font, 28, FontStyle.Normal, TextAnchor.MiddleCenter);
             small = Make(font, 22, FontStyle.Normal, TextAnchor.MiddleCenter);
         }
@@ -237,16 +255,48 @@ namespace BitArena
             }
             else
             {
-                tableScroll = GUI.BeginScrollView(
-                    new Rect(tableX, listY, tableW, listH),
-                    tableScroll,
-                    new Rect(0f, 0f, inner, count * rowH));
+                var view = new Rect(tableX, listY, tableW, listH);
+                float maxScroll = Mathf.Max(0f, count * rowH - listH);
+                GUI.BeginGroup(view);
+                if (Event.current.type == EventType.ScrollWheel)
+                {
+                    tableScroll.y = Mathf.Clamp(tableScroll.y + Event.current.delta.y * 24f, 0f, maxScroll);
+                    Event.current.Use();
+                }
+                GUI.BeginGroup(new Rect(0f, -tableScroll.y, inner, count * rowH));
                 for (int i = 0; i < count; i++)
                     DrawResultRow(session.Rounds[i], i, inner, rowH);
-                GUI.EndScrollView();
+                GUI.EndGroup();
+                GUI.EndGroup();
             }
 
-            Label(new Rect(x + 40, y + h - 68, w - 80, 44), "Enter — play again", small, new Color(1f, 0.86f, 0.55f));
+            var bar = new Rect(x + 360f, y + h - 74f, w - 720f, 52f);
+            var oldBg = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(1f, 0.84f, 0.38f);
+            bool hit = GUI.Button(bar, "Play again", again);
+            GUI.backgroundColor = oldBg;
+            if (hit)
+                session.RequestPlayAgain();
+        }
+
+        static bool WantsFreshMatch(GameSession session, Event evt)
+        {
+            if (session == null || evt == null)
+                return false;
+            bool results = session.Phase == MatchPhase.Won || session.Phase == MatchPhase.Lost;
+            if (results && evt.type == EventType.MouseDown && evt.button == 0)
+                return true;
+            if (evt.type != EventType.KeyDown)
+                return false;
+            bool keyR = evt.keyCode == KeyCode.R || evt.character == 'r' || evt.character == 'R';
+            if (keyR && (results || session.Phase == MatchPhase.Paused))
+                return true;
+            if (!results)
+                return false;
+            if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter || evt.keyCode == KeyCode.Space)
+                return true;
+            char c = evt.character;
+            return c == '\r' || c == '\n' || c == ' ';
         }
 
         static void ColumnSpans(out float a, out float b, out float ca, out float cb)
