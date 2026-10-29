@@ -261,13 +261,14 @@ namespace BitArena
             Panel(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, 2f), new Color(0.45f, 0.75f, 1f, 0.9f));
             Label(new Rect(cardX + cardW - 60f - badgeW, badgeY, badgeW, badgeH), "<color=#74b9ff>Bob</color> (Sword · Jump Up)", small, new Color(0.8f, 0.9f, 1f));
 
-            // Buttons
             float btnW = 560f;
-            float btnH = 78f;
             float btnX = cardX + (cardW - btnW) * 0.5f;
+            DrawDifficulty(session, btnX, cardY + 208f, btnW);
 
-            Rect rect0 = new Rect(btnX, cardY + 260f, btnW, btnH);
-            Rect rect1 = new Rect(btnX, cardY + 370f, btnW, btnH);
+            // Buttons
+            float btnH = 72f;
+            Rect rect0 = new Rect(btnX, cardY + 360f, btnW, btnH);
+            Rect rect1 = new Rect(btnX, cardY + 448f, btnW, btnH);
 
             if (rect0.Contains(Event.current.mousePosition) && session.MenuCursor != 0)
                 session.MoveMenu(-session.MenuCursor);
@@ -281,15 +282,50 @@ namespace BitArena
                 session.ConfirmMenu();
 
             // Instructions footer panel inside card
-            Panel(new Rect(cardX + 60f, cardY + 500f, cardW - 120f, 110f), new Color(0.04f, 0.02f, 0.08f, 0.75f));
-            Panel(new Rect(cardX + 60f, cardY + 500f, cardW - 120f, 2f), new Color(1f, 0.82f, 0.35f, 0.35f));
+            Panel(new Rect(cardX + 60f, cardY + 540f, cardW - 120f, 150f), new Color(0.04f, 0.02f, 0.08f, 0.75f));
+            Panel(new Rect(cardX + 60f, cardY + 540f, cardW - 120f, 2f), new Color(1f, 0.82f, 0.35f, 0.35f));
 
-            Label(new Rect(cardX + 80f, cardY + 514f, cardW - 160f, 34f),
+            Label(new Rect(cardX + 80f, cardY + 552f, cardW - 160f, 32f),
                 "▲ ▼ / W S  Navigate Options", body, new Color(0.96f, 0.94f, 0.88f));
-            Label(new Rect(cardX + 80f, cardY + 556f, cardW - 160f, 34f),
+            Label(new Rect(cardX + 80f, cardY + 590f, cardW - 160f, 32f),
+                "◀ ▶ / A D  Set Difficulty", body, new Color(0.96f, 0.94f, 0.88f));
+            Label(new Rect(cardX + 80f, cardY + 628f, cardW - 160f, 32f),
                 "ENTER or SPACE  Confirm Selection", body, new Color(1f, 0.84f, 0.42f));
 
             Label(new Rect(0, H - 42f, W, 32f), "Two Players · One Keyboard · Defeat Charlie", small, new Color(0.72f, 0.7f, 0.78f));
+        }
+
+        void DrawDifficulty(GameSession session, float x, float y, float w)
+        {
+            Label(new Rect(x, y, w, 28f), "DIFFICULTY", small, new Color(1f, 0.86f, 0.55f));
+            float barY = y + 32f;
+            float barH = 52f;
+            int count = GameSession.DifficultyNames.Length;
+            float segW = w / count;
+            DrawFrame(new Rect(x, barY, w, barH), new Color(0.1f, 0.07f, 0.16f, 0.96f), new Color(0.55f, 0.42f, 0.18f, 0.95f), 2.5f);
+            for (int i = 0; i < count; i++)
+            {
+                var rect = new Rect(x + i * segW, barY, segW, barH);
+                bool on = session.Difficulty == i;
+                if (on)
+                    Panel(new Rect(rect.x + 3f, rect.y + 3f, rect.width - 6f, rect.height - 6f), new Color(1f, 0.84f, 0.32f, 1f));
+                else if (rect.Contains(Event.current.mousePosition))
+                    Panel(new Rect(rect.x + 3f, rect.y + 3f, rect.width - 6f, rect.height - 6f), new Color(1f, 0.84f, 0.32f, 0.18f));
+                if (i > 0)
+                    Panel(new Rect(rect.x, barY + 8f, 2f, barH - 16f), new Color(1f, 0.82f, 0.35f, 0.35f));
+
+                var style = new GUIStyle(small)
+                {
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter
+                };
+                Label(rect, GameSession.DifficultyNames[i].ToUpper(), style,
+                    on ? new Color(0.12f, 0.05f, 0.02f) : new Color(0.94f, 0.9f, 0.82f));
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+                    session.SetDifficulty(i);
+            }
+
+            Label(new Rect(x, barY + barH + 6f, w, 26f), "Charlie has " + session.CharlieMax + " lives", small, new Color(1f, 0.84f, 0.5f));
         }
 
         void DrawMapSelect(GameSession session)
@@ -531,7 +567,7 @@ namespace BitArena
             Label(new Rect(790, 8, 130, 34), "Charlie", small, new Color(1f, 0.84f, 0.4f));
             var color = new Color(1f, 0.78f, 0.28f);
             float x = 920f;
-            for (int i = 0; i < Tune.CharlieLives; i++)
+            for (int i = 0; i < session.CharlieMax; i++)
             {
                 var old = GUI.color;
                 GUI.color = i < session.CharlieHp ? color : new Color(1f, 1f, 1f, 0.16f);
@@ -594,7 +630,7 @@ namespace BitArena
             Panel(new Rect(x, y, w, h), new Color(0.05f, 0.03f, 0.09f, 0.94f));
             Panel(new Rect(x, y, w, 8f), won ? new Color(1f, 0.82f, 0.35f) : new Color(1f, 0.35f, 0.32f));
             Label(new Rect(x + 40, y + 24, w - 80, 64), won ? "Pair closed" : "Defeat", title, new Color(1f, 0.9f, 0.7f));
-            string sub = won ? "Charlie is down. His five lives are gone." : LoseText(session);
+            string sub = won ? "Charlie is down. His lives are gone." : LoseText(session);
             Label(new Rect(x + 40, y + 92, w - 80, 40), sub, body, new Color(0.92f, 0.9f, 0.84f));
 
             float tableX = x + 36f;

@@ -64,7 +64,7 @@ namespace BitArena
         public Hero Runner;
         public CharlieBoss Charlie;
         public ArenaCamera Rig;
-        public int CharlieHp = Tune.CharlieLives;
+        public int CharlieHp = 3;
         public string Objective = "";
         public string Subtitle = "";
         public string CharlieLine = "";
@@ -83,9 +83,15 @@ namespace BitArena
         float matchReadyAt;
         bool startMatch;
         int pickedMap;
+        int difficulty = 1;
+
+        static readonly int[] LifeCaps = { 2, 3, Tune.CharlieLives };
+        public static readonly string[] DifficultyNames = { "Easy", "Medium", "Hard" };
 
         public int MenuCursor { get; private set; }
         public int PickedMap => pickedMap;
+        public int Difficulty => difficulty;
+        public int CharlieMax => LifeCaps[difficulty];
 
         public bool SwapLocked => Time.time < swapUnlockAt;
 
@@ -106,7 +112,7 @@ namespace BitArena
             Phase = MatchPhase.Menu;
             Time.timeScale = 1f;
             MenuCursor = 0;
-            CharlieHp = Tune.CharlieLives;
+            CharlieHp = CharlieMax;
             CharlieLine = "";
             if (Alice != null) Alice.Hp = Tune.Hearts;
             if (Bob != null) Bob.Hp = Tune.Hearts;
@@ -123,6 +129,23 @@ namespace BitArena
             MenuCursor = (MenuCursor + delta + 2) % 2;
             if (prev != MenuCursor)
                 SfxSynth.MenuTick();
+        }
+
+        public void SetDifficulty(int index)
+        {
+            if (index < 0)
+                index = 0;
+            else if (index >= LifeCaps.Length)
+                index = LifeCaps.Length - 1;
+            if (difficulty == index)
+                return;
+            difficulty = index;
+            SfxSynth.MenuTick();
+        }
+
+        public void CycleDifficulty(int delta)
+        {
+            SetDifficulty((difficulty + delta + LifeCaps.Length) % LifeCaps.Length);
         }
 
         public void ConfirmMenu()
@@ -165,7 +188,11 @@ namespace BitArena
             bool left = GameInput.Down(KeyCode.LeftArrow) || GameInput.Down(KeyCode.A);
             bool right = GameInput.Down(KeyCode.RightArrow) || GameInput.Down(KeyCode.D);
 
-            if (Phase == MatchPhase.Menu && up)
+            if (Phase == MatchPhase.Menu && left)
+                CycleDifficulty(-1);
+            else if (Phase == MatchPhase.Menu && right)
+                CycleDifficulty(1);
+            else if (Phase == MatchPhase.Menu && up)
                 MoveMenu(-1);
             else if (Phase == MatchPhase.Menu && down)
                 MoveMenu(1);
@@ -221,7 +248,7 @@ namespace BitArena
         {
             Phase = MatchPhase.Play;
             Time.timeScale = 1f;
-            CharlieHp = Tune.CharlieLives;
+            CharlieHp = CharlieMax;
             aliceReady = false;
             bobReady = false;
             Rounds.Clear();
@@ -372,7 +399,7 @@ namespace BitArena
             int and = And(aliceKill, bobKill);
             int xor = Xor(AliceState, BobState);
             bool holds = and == xor;
-            bool alreadyFull = holds && CharlieHp >= Tune.CharlieLives;
+            bool alreadyFull = holds && CharlieHp >= CharlieMax;
             aliceReady = false;
             bobReady = false;
 
@@ -387,7 +414,7 @@ namespace BitArena
                     Charlie.Flash(new Color(1f, 0.35f, 0.3f));
                 }
             }
-            else if (CharlieHp < Tune.CharlieLives)
+            else if (CharlieHp < CharlieMax)
             {
                 CharlieHp++;
                 SfxSynth.Wrong();
