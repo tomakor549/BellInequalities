@@ -9,11 +9,60 @@ namespace BitArena
         public Rigidbody2D Body;
         public Collider2D Col;
 
+        struct Step
+        {
+            public float MinX;
+            public float MaxX;
+            public float Top;
+
+            public Step(float minX, float maxX, float top)
+            {
+                MinX = minX;
+                MaxX = maxX;
+                Top = top;
+            }
+
+            public bool ContainsX(float x, float pad)
+            {
+                return x >= MinX - pad && x <= MaxX + pad;
+            }
+
+            public float NearestX(float x)
+            {
+                return Mathf.Clamp(x, MinX, MaxX);
+            }
+        }
+
+        static int nextSlot;
+
+        static readonly Step[] Steps =
+        {
+            new Step(-5.6f, -1.2f, 2.8f),
+            new Step(1.2f, 5.6f, 2.8f),
+            new Step(-9.3f, -6.5f, 5.14f),
+            new Step(6.5f, 9.3f, 5.14f),
+            new Step(-1.2f, 1.2f, 5.85f)
+        };
+
         Transform visual;
         SpriteRenderer sprite;
-        SpriteRenderer marker;
+        SpriteRenderer shadow;
         float facing = 1f;
         float nextJump;
+        float windupUntil;
+        float lungeUntil;
+        float lungeReady;
+        float lungeDir = 1f;
+        float nextDust;
+        bool groundedVisual;
+        bool wasGrounded;
+        int slot;
+        float dropUntil;
+        float dropX;
+        int home = -1;
+
+        float JumpHeight => Type == BitType.One ? 3.7f : 3.35f;
+        float JumpSpeed => Type == BitType.One ? 15.1f : 14.5f;
 
         public static BitMonster Spawn(BitType type, Vector3 position)
         {
@@ -21,6 +70,7 @@ namespace BitArena
             go.transform.position = position;
             var monster = go.AddComponent<BitMonster>();
             monster.Type = type;
+            monster.slot = nextSlot++;
             monster.Build();
             return monster;
         }
@@ -58,11 +108,11 @@ namespace BitArena
             visual = vis.transform;
             sprite = PixelArt.AddSprite(vis, Type == BitType.Zero ? PixelArt.Monster0 : PixelArt.Monster1, 12);
 
-            var mark = new GameObject("Mark");
-            mark.transform.SetParent(transform, false);
-            mark.transform.localPosition = new Vector3(0f, 1.12f, 0f);
-            marker = PixelArt.AddSprite(mark, PixelArt.Chevron, 26);
-            marker.enabled = false;
+            var shade = new GameObject("Shadow");
+            shade.transform.SetParent(transform, false);
+            shade.transform.localPosition = new Vector3(0f, Type == BitType.Zero ? -0.62f : -0.72f, 0f);
+            shadow = PixelArt.AddSprite(shade, PixelArt.Shadow, 4);
+            shadow.color = new Color(0f, 0f, 0f, 0.4f);
         }
 
         public void TakeHit(Hero attacker)
@@ -109,49 +159,217 @@ namespace BitArena
                 return;
             }
 
-            Vector2 target = quarry.transform.position;
-            float dx = target.x - transform.position.x;
-            float dir = Mathf.Abs(dx) < 0.18f ? 0f : Mathf.Sign(dx);
+            float feet = Col != null ? Col.bounds.min.y : transform.position.y;
+            bool grounded = IsGrounded();
+            groundedVisual = grounded;
+            if (grounded)
+                home = SurfaceIndex(feet, transform.position.x);
+            Plan(quarry, feet, out float goalX, out bool wantJump);
+            Vector2 aim = quarry.transform.position;
+
+            float dx = goalX - transform.position.x;
+            float dir = Mathf.Abs(dx) < 0.12f ? 0f : Mathf.Sign(dx);
+            ThinkLunge(aim, grounded, wantJump);
+            bool winding = Time.time < windupUntil;
+            bool lunging = Time.time < lungeUntil;
+            if (lunging)
+                dir = lungeDir;
             if (dir != 0f)
                 facing = dir;
 
-            bool grounded = IsGrounded();
-            bool wall = dir != 0f && HitsSolid((Vector2)transform.position + new Vector2(dir * 0.42f, 0.3f), Vector2.right * dir, 0.2f);
-            float dy = target.y - transform.position.y;
-            if (grounded && Time.time >= nextJump && (wall || dy > 1.25f))
+            if (grounded && wantJump && !winding && Time.time >= nextJump)
             {
-                float jump = Type == BitType.One ? 14f : 9.5f;
-                Body.linearVelocity = new Vector2(Body.linearVelocity.x, jump);
-                nextJump = Time.time + (Type == BitType.One ? 0.82f : 1.35f);
+                Body.linearVelocity = new Vector2(Body.linearVelocity.x, JumpSpeed);
+                nextJump = Time.time + (Type == BitType.One ? 0.48f : 0.62f);
             }
 
-            float speed = Type == BitType.Zero ? 2.9f : 4.25f;
-            float vx = dir * speed;
-            vx += Separation();
-            Body.linearVelocity = new Vector2(vx, Body.linearVelocity.y);
+            float speed = Type == BitType.Zero ? 3.25f : 4.7f;
+            if (winding)
+                speed *= 0.32f;
+            else if (lunging)
+                speed *= Type == BitType.One ? 1.72f : 1.38f;
+            bool leaving = Time.time < dropUntil;
+            float vx = dir * speed + (leaving ? 0f : Separation());
+            float cap = speed * 1.25f;
+            Body.linearVelocity = new Vector2(Mathf.Clamp(vx, -cap, cap), Body.linearVelocity.y);
+        }
+
+        void Plan(Hero quarry, float feet, out float goalX, out bool wantJump)
+        {
+            float heroX = Mathf.Clamp(quarry.transform.position.x, -10.1f, 10.1f);
+            if (quarry.Body != null)
+                heroX = Mathf.Clamp(heroX + quarry.Body.linearVelocity.x * 0.2f, -10.1f, 10.1f);
+            float heroFeet = quarry.transform.position.y - 0.55f;
+            int me = home;
+            int them = SurfaceIndex(heroFeet, quarry.transform.position.x);
+            float myTop = me < 0 ? 0f : Steps[me].Top;
+            float theirTop = them < 0 ? 0f : Steps[them].Top;
+            wantJump = false;
+            goalX = heroX;
+
+            if (theirTop > myTop + 0.45f)
+            {
+                int next = NextHop(me, them, heroX);
+                if (next >= 0)
+                {
+                    dropUntil = 0f;
+                    Step hop = Steps[next];
+                    float gap = GapToSpan(transform.position.x, hop);
+                    goalX = gap > 0.25f
+                        ? (transform.position.x < hop.MinX ? hop.MinX + 0.4f : hop.MaxX - 0.4f)
+                        : hop.NearestX(heroX);
+                    float climb = hop.Top - feet;
+                    wantJump = gap < 1.65f && climb > 0.4f && climb <= JumpHeight;
+                    return;
+                }
+            }
+
+            if (me >= 0 && feet > heroFeet + 1.05f && Time.time >= dropUntil)
+            {
+                Step ledge = Steps[me];
+                bool goLeft = heroX < transform.position.x - 0.15f
+                    || (Mathf.Abs(heroX - transform.position.x) <= 0.15f && (slot & 1) == 0);
+                float exit = goLeft ? ledge.MinX - 1.25f : ledge.MaxX + 1.25f;
+                dropX = Mathf.Clamp(exit, -10.1f, 10.1f);
+                dropUntil = Time.time + 1.45f;
+            }
+
+            if (Time.time < dropUntil && feet > heroFeet + 0.45f)
+            {
+                goalX = dropX;
+                return;
+            }
+
+            dropUntil = 0f;
+            if (Mathf.Abs(heroX - transform.position.x) > 1.7f)
+            {
+                float flank = ((slot & 1) == 0 ? -1f : 1f) * 0.8f;
+                goalX = Mathf.Clamp(heroX + flank, -10.1f, 10.1f);
+            }
+        }
+
+        int NextHop(int from, int target, float heroX)
+        {
+            if (CanHop(from, target))
+                return target;
+            int best = -1;
+            float bestCost = float.MaxValue;
+            float targetTop = Steps[target].Top;
+            for (int i = 0; i < Steps.Length; i++)
+            {
+                if (!CanHop(from, i) || Steps[i].Top > targetTop + 0.05f)
+                    continue;
+                float mid = (Steps[i].MinX + Steps[i].MaxX) * 0.5f;
+                float cost = Mathf.Abs(Steps[i].NearestX(heroX) - heroX) + Mathf.Abs(mid - transform.position.x) * 0.45f;
+                if (cost >= bestCost)
+                    continue;
+                bestCost = cost;
+                best = i;
+            }
+            return best;
+        }
+
+        bool CanHop(int from, int to)
+        {
+            if (to < 0 || from == to)
+                return false;
+            float fromTop = from < 0 ? 0f : Steps[from].Top;
+            float climb = Steps[to].Top - fromTop;
+            if (climb < 0.4f || climb > JumpHeight)
+                return false;
+            if (from < 0)
+                return true;
+            return SpanGap(Steps[from], Steps[to]) <= 2.8f;
+        }
+
+        static float SpanGap(Step left, Step right)
+        {
+            if (left.MaxX >= right.MinX && right.MaxX >= left.MinX)
+                return 0f;
+            if (left.MaxX < right.MinX)
+                return right.MinX - left.MaxX;
+            return left.MinX - right.MaxX;
+        }
+
+        static float GapToSpan(float x, Step hop)
+        {
+            if (x < hop.MinX)
+                return hop.MinX - x;
+            if (x > hop.MaxX)
+                return x - hop.MaxX;
+            return 0f;
+        }
+
+        int SurfaceIndex(float feet, float x)
+        {
+            int best = -1;
+            float bestDy = 0.48f;
+            for (int i = 0; i < Steps.Length; i++)
+            {
+                float dy = Mathf.Abs(feet - Steps[i].Top);
+                if (dy >= bestDy || !Steps[i].ContainsX(x, 0.2f))
+                    continue;
+                bestDy = dy;
+                best = i;
+            }
+            return best;
+        }
+
+        void ThinkLunge(Vector2 aim, bool grounded, bool wantJump)
+        {
+            bool sameBand = Mathf.Abs(aim.y - transform.position.y) < 0.95f;
+            float adx = aim.x - transform.position.x;
+            float abs = Mathf.Abs(adx);
+            bool ready = grounded && !wantJump && sameBand && abs > 0.55f && abs < 2.9f && Time.time >= lungeReady;
+            bool winding = Time.time < windupUntil;
+            bool lunging = Time.time < lungeUntil;
+            if (ready && !winding && !lunging && (windupUntil <= 0f || Time.time > windupUntil + 0.08f))
+                windupUntil = Time.time + (Type == BitType.One ? 0.16f : 0.26f);
+            if (!lunging && windupUntil > 0f && Time.time >= windupUntil && Time.time <= windupUntil + 0.08f)
+            {
+                lungeDir = Mathf.Abs(adx) < 0.05f ? facing : Mathf.Sign(adx);
+                lungeUntil = Time.time + (Type == BitType.One ? 0.32f : 0.24f);
+                lungeReady = lungeUntil + (Type == BitType.One ? 0.9f : 1.35f);
+            }
         }
 
         Hero NearestHero(GameSession session)
         {
-            Hero best = null;
-            float bestDist = float.MaxValue;
-            Consider(session.Alice, ref best, ref bestDist);
-            Consider(session.Bob, ref best, ref bestDist);
-            return best;
+            Hero alice = session.Alice;
+            Hero bob = session.Bob;
+            bool aliceOk = alice != null && alice.Hp > 0;
+            bool bobOk = bob != null && bob.Hp > 0;
+            if (!aliceOk)
+                return bobOk ? bob : null;
+            if (!bobOk)
+                return alice;
+            float aliceScore = QuarryScore(session, alice, bob);
+            float bobScore = QuarryScore(session, bob, alice);
+            if (Mathf.Abs(aliceScore - bobScore) < 0.4f)
+                return (slot & 1) == 0 ? alice : bob;
+            return aliceScore < bobScore ? alice : bob;
         }
 
-        void Consider(Hero hero, ref Hero best, ref float bestDist)
+        float QuarryScore(GameSession session, Hero hero, Hero other)
         {
-            if (hero == null || hero.Hp <= 0)
-                return;
             float dx = hero.transform.position.x - transform.position.x;
             float dy = hero.transform.position.y - transform.position.y;
-            float dist = dx * dx + dy * dy;
-            if (dist < bestDist)
+            float score = Mathf.Sqrt(dx * dx + dy * dy);
+            if (hero == session.Runner)
+                score -= 1.7f;
+            int crowd = 0;
+            for (int i = 0; i < session.Monsters.Count; i++)
             {
-                bestDist = dist;
-                best = hero;
+                var mate = session.Monsters[i];
+                if (mate == null || mate == this || !mate.Alive)
+                    continue;
+                float toHero = (hero.transform.position - mate.transform.position).sqrMagnitude;
+                float toOther = other == null ? float.MaxValue : (other.transform.position - mate.transform.position).sqrMagnitude;
+                if (toHero < toOther)
+                    crowd++;
             }
+            score += crowd * 1.7f;
+            return score;
         }
 
         float Separation()
@@ -200,12 +418,35 @@ namespace BitArena
 
         void Update()
         {
+            bool winding = Time.time < windupUntil && Time.time >= lungeUntil;
+            bool lunging = Time.time < lungeUntil;
+            float sx = lunging ? 0.9f : winding ? 1.14f : 1f;
+            float sy = lunging ? 1.14f : winding ? 0.84f : 1f;
             if (visual != null)
-                visual.localScale = new Vector3(facing, 1f, 1f);
-            if (marker != null)
-                marker.enabled = false;
+                visual.localScale = new Vector3(facing * sx, sy, 1f);
             if (sprite != null)
-                sprite.color = Color.white;
+            {
+                if (lunging)
+                    sprite.color = new Color(1f, 0.82f, 0.82f);
+                else if (winding)
+                    sprite.color = Color.Lerp(Color.white, new Color(1f, 0.35f, 0.3f), 0.5f + 0.5f * Mathf.Sin(Time.time * 42f));
+                else
+                    sprite.color = Color.white;
+            }
+            if (shadow != null)
+            {
+                float lift = groundedVisual ? 1f : 0.58f;
+                shadow.transform.localScale = new Vector3(lift, lift * 0.85f, 1f);
+                shadow.color = new Color(0f, 0f, 0f, groundedVisual ? 0.4f : 0.18f);
+            }
+            if (groundedVisual && !wasGrounded)
+                Vfx.Burst(transform.position + Vector3.down * 0.55f, new Color(0.85f, 0.8f, 0.9f), 3, 1.6f);
+            else if (groundedVisual && lunging && Time.time >= nextDust)
+            {
+                nextDust = Time.time + 0.08f;
+                Vfx.Burst(transform.position + Vector3.down * 0.55f, new Color(1f, 0.55f, 0.4f), 1, 1.4f);
+            }
+            wasGrounded = groundedVisual;
         }
 
         void OnDestroy()

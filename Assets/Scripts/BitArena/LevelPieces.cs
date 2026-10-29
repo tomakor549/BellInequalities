@@ -14,10 +14,12 @@ namespace BitArena
         public float HalfHeight = 5.9f;
 
         Camera cam;
+        Vector3 look;
 
         void Awake()
         {
             cam = GetComponent<Camera>();
+            look = new Vector3(0f, CenterY, -10f);
         }
 
         void LateUpdate()
@@ -26,8 +28,19 @@ namespace BitArena
                 return;
             float aspect = Mathf.Max(0.6f, cam.aspect);
             cam.orthographicSize = Mathf.Max(HalfHeight, HalfWidth / aspect);
+            Vector3 focus = new Vector3(0f, CenterY, -10f);
+            var session = GameSession.I;
+            if (session != null && session.Phase == MatchPhase.Play && session.Alice != null && session.Bob != null)
+            {
+                Vector3 mid = (session.Alice.transform.position + session.Bob.transform.position) * 0.5f;
+                float x = Mathf.Clamp(mid.x * 0.18f, -1.35f, 1.35f);
+                float y = Mathf.Clamp((mid.y - 2.2f) * 0.12f, -0.4f, 0.65f);
+                focus = new Vector3(x, CenterY + y, -10f);
+            }
+            float blend = 1f - Mathf.Exp(-3.5f * Time.unscaledDeltaTime);
+            look = Vector3.Lerp(look, focus, blend);
             Vector2 jolt = Shake > 0.001f ? Random.insideUnitCircle * Shake : Vector2.zero;
-            cam.transform.position = new Vector3(jolt.x, CenterY + jolt.y, -10f);
+            cam.transform.position = look + new Vector3(jolt.x, jolt.y, 0f);
             cam.transform.rotation = Quaternion.identity;
             Shake = Mathf.MoveTowards(Shake, 0f, Time.unscaledDeltaTime * 7f);
         }

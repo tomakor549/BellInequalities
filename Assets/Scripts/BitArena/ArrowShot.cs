@@ -8,6 +8,7 @@ namespace BitArena
         Rigidbody2D body;
         Vector2 velocity;
         float dieAt;
+        float trail;
 
         public static void Spawn(Hero owner, Vector2 position, float direction)
         {
@@ -37,6 +38,15 @@ namespace BitArena
                 return;
             }
             body.MovePosition(body.position + velocity * Time.fixedDeltaTime);
+        }
+
+        void Update()
+        {
+            trail -= Time.deltaTime;
+            if (trail > 0f)
+                return;
+            trail = 0.035f;
+            Vfx.Burst(transform.position, new Color(1f, 0.78f, 0.35f), 1, 0.7f);
         }
 
         void OnTriggerEnter2D(Collider2D other)
