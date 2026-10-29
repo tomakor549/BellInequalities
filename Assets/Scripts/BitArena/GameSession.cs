@@ -35,6 +35,22 @@ namespace BitArena
         public float Born;
     }
 
+    public enum CharlieShift
+    {
+        Lost,
+        Recovered,
+        Full
+    }
+
+    public struct RoundNote
+    {
+        public int A;
+        public int B;
+        public int Ca;
+        public int Cb;
+        public CharlieShift Shift;
+    }
+
     public class GameSession : MonoBehaviour
     {
         public static GameSession I { get; private set; }
@@ -58,6 +74,7 @@ namespace BitArena
         public Hero LostHero;
         public readonly List<BitMonster> Monsters = new List<BitMonster>();
         public readonly List<Floater> Floaters = new List<Floater>();
+        public readonly List<RoundNote> Rounds = new List<RoundNote>();
 
         float spawnIn = 2f;
         float swapUnlockAt;
@@ -118,6 +135,7 @@ namespace BitArena
             CharlieHp = Tune.CharlieLives;
             aliceReady = false;
             bobReady = false;
+            Rounds.Clear();
             AliceState = RollBit();
             BobState = RollBit();
             Attacker = Alice;
@@ -264,11 +282,6 @@ namespace BitArena
                     Float(Charlie.transform.position + Vector3.up * 1.5f, "-1", new Color(1f, 0.4f, 0.34f));
                     Charlie.Flash(new Color(1f, 0.35f, 0.3f));
                 }
-                if (CharlieHp <= 0)
-                {
-                    Win();
-                    return;
-                }
             }
             else if (CharlieHp < Tune.CharlieLives)
             {
@@ -285,12 +298,25 @@ namespace BitArena
                 SfxSynth.Wrong();
             }
 
-            string pair = BitDigit(aliceKill) + " AND " + BitDigit(bobKill);
+            Rounds.Add(new RoundNote
+            {
+                A = BitValue(AliceState),
+                B = BitValue(BobState),
+                Ca = BitValue(aliceKill),
+                Cb = BitValue(bobKill),
+                Shift = !holds ? CharlieShift.Lost : alreadyFull ? CharlieShift.Full : CharlieShift.Recovered
+            });
+            if (!holds && CharlieHp <= 0)
+            {
+                Win();
+                return;
+            }
+
             string verdict = !holds
-                ? pair + " breaks a XOR b. I lose a life."
+                ? "I lose a life."
                 : alreadyFull
-                    ? pair + " matches a XOR b. I am already full."
-                    : pair + " matches a XOR b. I recover a life.";
+                    ? "I am already full."
+                    : "I recover a life.";
 
             AliceState = RollBit();
             BobState = RollBit();
@@ -358,31 +384,34 @@ namespace BitArena
 
         void Announce(bool first)
         {
-            int xor = Xor(AliceState, BobState);
             bool aliceAttacks = Attacker != null && Attacker.Kind == HeroKind.Alice;
             string who = aliceAttacks ? "Alice" : "Bob";
             string other = aliceAttacks ? "Bob" : "Alice";
             string whoColor = aliceAttacks ? "#ff5a4a" : "#6aa4ff";
             string otherColor = aliceAttacks ? "#6aa4ff" : "#ff5a4a";
             Objective = "<color=#ff5a4a>Alice</color> state <color=#ffe08a>" + BitDigit(AliceState)
-                + "</color>    <color=#6aa4ff>Bob</color> state <color=#ffe08a>" + BitDigit(BobState)
-                + "</color>    a XOR b = <color=#ffe08a>" + xor + "</color>";
+                + "</color>    <color=#6aa4ff>Bob</color> state <color=#ffe08a>" + BitDigit(BobState) + "</color>";
             Subtitle = "<color=" + whoColor + ">" + who + "</color> attacks  ·  <color=" + otherColor + ">" + other + "</color> runs";
             if (aliceReady && !bobReady)
                 CharlieLine = "Alice killed " + BitDigit(aliceKill) + ". Bob, choose your bit.";
             else if (bobReady && !aliceReady)
                 CharlieLine = "Bob killed " + BitDigit(bobKill) + ". Alice, choose your bit.";
             else
-                CharlieLine = "Kill any bit. Break a XOR b and I lose a life.";
+                CharlieLine = "Kill any bit.";
             if (aliceReady && !bobReady)
                 BigCallout = "Alice  →  " + BitDigit(aliceKill);
             else if (bobReady && !aliceReady)
                 BigCallout = "Bob  →  " + BitDigit(bobKill);
             else
-                BigCallout = BitDigit(AliceState) + " XOR " + BitDigit(BobState);
+                BigCallout = "A " + BitDigit(AliceState) + "    B " + BitDigit(BobState);
             CalloutUntil = Time.unscaledTime + (first ? 1.7f : 1.15f);
             if (!first)
                 SfxSynth.Swap();
+        }
+
+        static int BitValue(BitType type)
+        {
+            return type == BitType.One ? 1 : 0;
         }
 
         static int And(BitType left, BitType right)

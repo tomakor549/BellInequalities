@@ -9,8 +9,10 @@ namespace BitArena
         GUIStyle body;
         GUIStyle small;
         GUIStyle huge;
+        GUIStyle cell;
         Texture2D pixel;
         bool ready;
+        Vector2 tableScroll;
 
         const float W = 1920f;
         const float H = 1080f;
@@ -37,11 +39,11 @@ namespace BitArena
                     break;
                 case MatchPhase.Won:
                     DrawPlay(session);
-                    DrawCard(420, 320, 1080, 280, "Pair closed", "Charlie is down. His five lives are gone.\nEnter — play again");
+                    DrawResults(session, true);
                     break;
                 case MatchPhase.Lost:
                     DrawPlay(session);
-                    DrawCard(420, 320, 1080, 300, "Defeat", LoseText(session) + "\nEnter — play again");
+                    DrawResults(session, false);
                     break;
                 default:
                     DrawPlay(session);
@@ -63,6 +65,7 @@ namespace BitArena
             title = Make(font, 64, FontStyle.Bold, TextAnchor.MiddleCenter);
             banner = Make(font, 36, FontStyle.Bold, TextAnchor.MiddleCenter);
             huge = Make(font, 72, FontStyle.Bold, TextAnchor.MiddleCenter);
+            cell = Make(font, 26, FontStyle.Bold, TextAnchor.MiddleCenter);
             body = Make(font, 28, FontStyle.Normal, TextAnchor.MiddleCenter);
             small = Make(font, 22, FontStyle.Normal, TextAnchor.MiddleCenter);
         }
@@ -97,10 +100,8 @@ namespace BitArena
                 "At most three monsters are out, always including at least one 0 and one 1.\n" +
                 "Alice and Bob each have a state, 0 or 1. On your turn, kill either bit.\n" +
                 "Alice strikes while Bob runs, then Bob strikes while Alice runs.\n" +
-                "After both kills, test Ca AND Cb against a XOR b.\n" +
-                "If the pair breaks the equation, Charlie loses a life.\n" +
-                "If the pair matches, Charlie heals. Empty his five lives to win.\n" +
-                "Both states then roll again.\n\n" +
+                "After both kills, Charlie may lose or recover a life.\n" +
+                "Empty his five lives to win. The pair results appear at the end.\n\n" +
                 "Enter — start      Esc — pause      R — restart";
             Label(new Rect(360, 240, 1200, 620), text, body, new Color(0.94f, 0.93f, 0.9f));
             if (!string.IsNullOrEmpty(session.CharlieLine))
@@ -129,7 +130,7 @@ namespace BitArena
             DrawFloaters(session);
             Panel(new Rect(0, 1010, W, 70), new Color(0.03f, 0.02f, 0.06f, 0.7f));
             Label(new Rect(40, 1020, 1840, 46),
-                "Alice: A D, W, J          Bob: arrow keys, K          break a XOR b to hurt Charlie          R restart, Esc pause",
+                "Alice: A D, W, J          Bob: arrow keys, K          R restart, Esc pause",
                 small, new Color(0.9f, 0.9f, 0.86f));
         }
 
@@ -205,6 +206,95 @@ namespace BitArena
                 color.a = Mathf.Clamp01(1f - age / 0.95f);
                 Label(new Rect(x - 140, y - 16, 280, 36), floater.Text, small, color);
             }
+        }
+
+        void DrawResults(GameSession session, bool won)
+        {
+            const float x = 310f;
+            const float y = 78f;
+            const float w = 1300f;
+            const float h = 900f;
+            Panel(new Rect(x, y, w, h), new Color(0.05f, 0.03f, 0.09f, 0.94f));
+            Panel(new Rect(x, y, w, 8f), won ? new Color(1f, 0.82f, 0.35f) : new Color(1f, 0.35f, 0.32f));
+            Label(new Rect(x + 40, y + 24, w - 80, 64), won ? "Pair closed" : "Defeat", title, new Color(1f, 0.9f, 0.7f));
+            string sub = won ? "Charlie is down. His five lives are gone." : LoseText(session);
+            Label(new Rect(x + 40, y + 92, w - 80, 40), sub, body, new Color(0.92f, 0.9f, 0.84f));
+
+            float tableX = x + 36f;
+            float tableW = w - 72f;
+            float inner = tableW - 24f;
+            float headY = y + 150f;
+            DrawResultHeader(tableX, headY, inner);
+            Panel(new Rect(tableX, headY + 42f, inner, 2f), new Color(1f, 0.82f, 0.45f, 0.9f));
+
+            float listY = headY + 52f;
+            float listH = h - (listY - y) - 88f;
+            int count = session.Rounds.Count;
+            const float rowH = 58f;
+            if (count == 0)
+            {
+                Label(new Rect(tableX, listY + 16f, inner, 40f), "No finished pairs.", body, new Color(0.8f, 0.78f, 0.72f));
+            }
+            else
+            {
+                tableScroll = GUI.BeginScrollView(
+                    new Rect(tableX, listY, tableW, listH),
+                    tableScroll,
+                    new Rect(0f, 0f, inner, count * rowH));
+                for (int i = 0; i < count; i++)
+                    DrawResultRow(session.Rounds[i], i, inner, rowH);
+                GUI.EndScrollView();
+            }
+
+            Label(new Rect(x + 40, y + h - 68, w - 80, 44), "Enter — play again", small, new Color(1f, 0.86f, 0.55f));
+        }
+
+        static void ColumnSpans(out float a, out float b, out float ca, out float cb)
+        {
+            a = 150f;
+            b = 150f;
+            ca = 170f;
+            cb = 170f;
+        }
+
+        void DrawResultHeader(float x, float y, float w)
+        {
+            ColumnSpans(out float a, out float b, out float ca, out float cb);
+            Label(new Rect(x, y, a, 36), "A", cell, new Color(1f, 0.48f, 0.4f));
+            Label(new Rect(x + a, y, b, 36), "B", cell, new Color(0.5f, 0.74f, 1f));
+            Label(new Rect(x + a + b, y, ca, 36), "Ca", cell, new Color(1f, 0.86f, 0.45f));
+            Label(new Rect(x + a + b + ca, y, cb, 36), "Cb", cell, new Color(0.8f, 0.72f, 1f));
+            Label(new Rect(x + a + b + ca + cb, y, w - (a + b + ca + cb), 36), "Charlie", cell, new Color(1f, 0.84f, 0.45f));
+        }
+
+        void DrawResultRow(RoundNote note, int index, float w, float rowH)
+        {
+            ColumnSpans(out float a, out float b, out float ca, out float cb);
+            float y = index * rowH;
+            var bg = index % 2 == 0 ? new Color(1f, 1f, 1f, 0.05f) : new Color(1f, 0.86f, 0.45f, 0.07f);
+            Panel(new Rect(0f, y + 4f, w, rowH - 8f), bg);
+            ValueChip(new Rect(16f, y + 8f, 114f, rowH - 16f), note.A.ToString(), new Color(0.55f, 0.16f, 0.14f, 0.95f), new Color(1f, 0.66f, 0.56f));
+            ValueChip(new Rect(a + 16f, y + 8f, 114f, rowH - 16f), note.B.ToString(), new Color(0.12f, 0.24f, 0.48f, 0.95f), new Color(0.72f, 0.86f, 1f));
+            ValueChip(new Rect(a + b + 22f, y + 8f, 124f, rowH - 16f), note.Ca.ToString(), new Color(0.42f, 0.3f, 0.08f, 0.95f), new Color(1f, 0.9f, 0.55f));
+            ValueChip(new Rect(a + b + ca + 22f, y + 8f, 124f, rowH - 16f), note.Cb.ToString(), new Color(0.28f, 0.2f, 0.46f, 0.95f), new Color(0.86f, 0.78f, 1f));
+
+            string outcome = note.Shift == CharlieShift.Lost
+                ? "lost one life"
+                : note.Shift == CharlieShift.Recovered
+                    ? "recovered one life"
+                    : "already full";
+            var ink = note.Shift == CharlieShift.Lost
+                ? new Color(1f, 0.55f, 0.48f)
+                : note.Shift == CharlieShift.Recovered
+                    ? new Color(0.55f, 1f, 0.72f)
+                    : new Color(0.82f, 0.8f, 0.74f);
+            Label(new Rect(a + b + ca + cb, y, w - (a + b + ca + cb) - 8f, rowH), outcome, cell, ink);
+        }
+
+        void ValueChip(Rect rect, string text, Color fill, Color ink)
+        {
+            Panel(rect, fill);
+            Label(rect, text, cell, ink);
         }
 
         void DrawCard(float x, float y, float w, float h, string heading, string text)
