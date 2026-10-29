@@ -515,6 +515,7 @@ namespace BitArena
 
         void StartFresh()
         {
+            ArenaMaps.Select(pickedMap);
             startMatch = false;
             matchReadyAt = Time.unscaledTime + 0.35f;
             ClearEncounter();
